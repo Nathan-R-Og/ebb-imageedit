@@ -1,0 +1,158 @@
+binary: dumped/chr/characters1.bin
+type: sprite
+assumed_palettes:
+  #generic sprite palette
+  - [-1, 0xF, 0x00, 0x30] #greyscale
+  - [-1, 0xF, 0x16, 0x37] #black/red/tan
+  - [-1, 0xF, 0x24, 0x37] #black/pink/tan
+  - [-1, 0xF, 0x12, 0x37] #black/blue/tan
+data:
+  - [0, system]
+  - [0x20, ninten]
+  - [0x80, teddy_die]
+  - [0xA0, pippi]
+  - [0x100, ninten]
+  - [0x180, pippi]
+  - [0x200, lloyd_die]
+  - [0x210, ana_die]
+  - [0x220, lloyd]
+  - [0x280, pippi_die]
+  - [0x2a0, teddy_die]
+  - 0x2f0:
+    - lloyd_die
+    - ana_die
+    - pippi_die
+  - [0x300, lloyd]
+  - [0x380, ana_die]
+  - [0x3a0, system]
+  - [0x3c0, teddy_die]
+  - [0x3e0, sweat]
+  - 0x400:
+    - lloyd_die
+    - ana_die
+    - pippi_die
+  - [0x410, pippi_die]
+  - [0x420, ana]
+  - [0x480, lloyd_die]
+  - [0x4a0, ninten_die]
+  - 0x4c0:
+    - ninten_die
+    - lloyd_die
+  - [0x4d0, pippi_die]
+  - [0x4e0, ninten_die]
+  - [0x500, ana]
+  - 0x580:
+    - lloyd_die
+    - ana_die
+    - pippi_die
+  - [0x5a0, ninten_die]
+  - [0x5d0, ana_die]
+  - [0x5e0, ninten_die]
+  - [0x600, teddy]
+  - [0x680, teleport_fry]
+  - [0x6a0, present]
+  - [0x6e0, sign]
+  - [0x700, teddy]
+  - [0x780, teleport_fry]
+  - [0x7a0, present]
+  - [0x7e0, sign]
+styling:
+  - name: ninten
+    use_palettes: [1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 3, 3, 3]
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: ninten_die
+    use_palettes: 0
+    tile_order:
+    - [ 0,  1,  2, -2]
+    - [ 5,  6,  7, -7]
+    - [ 3,  4, -4, -3]
+    - [ 8,  9, -9, -8]
+  - name: lloyd
+    use_palettes: 1
+    shift:
+    - -6: [-1, 0]
+    - -7: [-1, 0]
+    - -9: [-1, 0]
+    - -8: [-1, 0]
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: lloyd_die
+    use_palettes: 0
+    tile_order:
+    - [ 0,  -,  5, -5]
+    - [ 2, -2,  1, -1]
+    - [ 3,  4, -4, -3]
+    - [ 6,  7, -7, -6]
+  - name: ana
+    use_palettes: 2
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: ana_die
+    use_palettes: 0
+    tile_order:
+    - [ 0,  -,  7, -7]
+    - [ 4, -4,  1, -1]
+    - [ 2,  3, -3, -2]
+    - [ 5,  6, -6, -5]
+  - name: teddy
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1, -1,  -,  2,  3, -3, -2]
+    - [ 8,  9, 10, 11, 12, 13,-13,-12]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [14, 15,  6,  7,-15,-14, -7, -6]
+  - name: teddy_die
+    use_palettes: 0
+    tile_order:
+    - [ 2,  3,  6, -6]
+    - [ 0,  -,  1, -1]
+    - [ 4,  5, -5, -4]
+    - [ 7,  8, -8, -7]
+  - name: pippi
+    use_palettes: [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2]
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: pippi_die
+    use_palettes: 0
+    tile_order:
+    - [ 4, -4,  5, -5]
+    - [ 3, -3,  2, -2]
+    - [ 0,  1, -1,  -]
+    - [ 6,  7, -7, -6]
+  - name: system
+    use_palettes: 0
+    tile_order:
+    - [0, 1]
+    - [2, 3]
+  - name: sweat
+    use_palettes: 0
+    tile_order:
+    - [0, 1]
+  - name: teleport_fry
+    use_palettes: 0
+    tile_order:
+    - [0, 1]
+    - [2, 3]
+  - name: sign
+    use_palettes: 1
+    tile_order:
+    - [0, 1]
+    - [2, 3]
+  - name: present
+    use_palettes: 1
+    tile_order:
+    - [0, 1, 2, 3]
+    - [4, 5, 6, 7]
