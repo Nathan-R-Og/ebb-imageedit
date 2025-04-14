@@ -1,0 +1,121 @@
+binary: dumped/chr/characters5.bin
+address: 0x5a010
+size: 0x800
+type: sprite
+assumed_palettes:
+  #generic sprite palette
+  - [-1, 0xF, 0x00, 0x30] #greyscale
+  - [-1, 0xF, 0x16, 0x37] #black/red/tan
+  - [-1, 0xF, 0x24, 0x37] #black/pink/tan
+  - [-1, 0xF, 0x12, 0x37] #black/blue/tan
+data:
+  - [0, unused]
+  - [0x10, mouse]
+  - [0x20, coolcap_kid]
+  - [0x80, mouse]
+  - [0xA0, pillar]
+  - [0xe0, lamp]
+  - [0x100, coolcap_kid]
+  - [0x180, pillar]
+  - [0x1e0, lamp]
+  - [0x200, mouse]
+  - [0x220, canary]
+  - [0x280, phone]
+  - [0x2a0, dog]
+  - [0x300, canary]
+  - [0x380, dog]
+  - [0x400, doll]
+  - [0x420, lady]
+  - [0x480, phone]
+  - [0x4a0, healer]
+  - [0x500, lady]
+  - [0x580, healer]
+  - [0x600, doll]
+  - [0x620, mom]
+  - [0x680, unused]
+  - [0x6a0, sister]
+  - [0x700, mom]
+  - [0x780, sister]
+
+styling:
+  - name: mouse
+    use_palettes: 0
+    tile_order:
+    - [ 1,  1,  1,  1]
+    - [ 0,  -,  3, -3]
+    - [ 2,  2, -2, -2]
+    - [ 4,  4, -4, -4]
+  - name: coolcap_kid
+    use_palettes: 0
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: pillar
+    use_palettes: 0
+    tile_order:
+    - [ 2,  3]
+    - [ 8,  9]
+    - [ 0,  1]
+    - [ 6,  7]
+    - [ 4,  5]
+  - name: lamp
+    use_palettes: 3
+    tile_order:
+    - [ 0,  1]
+    - [ 2,  3]
+  - name: canary
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: phone
+    use_palettes: 0
+    tile_order:
+    - [ 0,  1]
+    - [ 2,  3]
+  - name: dog
+    use_palettes: 0
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: doll
+    use_palettes: 3
+    tile_order:
+    - [ 0,  1]
+    - [ 2,  3]
+  - name: lady
+    use_palettes: 2
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: healer
+    use_palettes: 3
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: mom
+    use_palettes: [2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1]
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: sister
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: unused
+    use_palettes: 0

@@ -1,0 +1,131 @@
+binary: dumped/chr/characters7.bin
+address: 0x5b010
+size: 0x800
+type: sprite
+assumed_palettes:
+  #generic sprite palette
+  - [-1, 0xF, 0x00, 0x30] #greyscale
+  - [-1, 0xF, 0x16, 0x37] #black/red/tan
+  - [-1, 0xF, 0x24, 0x37] #black/pink/tan
+  - [-1, 0xF, 0x12, 0x37] #black/blue/tan
+data:
+  - [0, unused]
+  - [0x10, bunny]
+  - [0x20, magicant_boy]
+  - [0x80, bunny]
+  - [0xA0, magicant_girl]
+  - [0x100, magicant_boy]
+  - [0x180, magicant_girl]
+  - [0x200, bunny]
+  - [0x220, flying_man]
+  - [0x280, panda]
+  - [0x2a0, magicant_adult]
+  - [0x300, flying_man]
+  - [0x380, magicant_adult]
+  - [0x400, flamingo]
+  - [0x420, monkey]
+  - [0x480, panda]
+  - [0x4a0, penguin]
+  - [0x500, monkey]
+  - [0x580, penguin]
+  - [0x600, flamingo]
+  - [0x620, cat]
+  - [0x680, zoo_sign]
+  - [0x6a0, info_sign]
+  - [0x6c0, zoo_gate]
+  - [0x6e0, trash_can]
+  - [0x700, cat]
+  - [0x780, zoo_sign]
+  - [0x7a0, info_sign]
+  - [0x7c0, zoo_gate]
+  - [0x7e0, trash_can]
+
+styling:
+  - name: zoo_sign
+    use_palettes: 3
+    tile_order:
+    - [ 0,  1]
+    - [ 2,  3]
+  - name: info_sign
+    use_palettes: 0
+    tile_order:
+    - [ 0,  1]
+    - [ 2,  3]
+  - name: zoo_gate
+    use_palettes: 0
+    tile_order:
+    - [ 0,  1]
+    - [ 2,  3]
+  - name: trash_can
+    use_palettes: 0
+    tile_order:
+    - [ 0,  1]
+    - [ 2,  3]
+  - name: bunny
+    use_palettes: 0
+    tile_order:
+    - [ 1, -1,  1, -1]
+    - [ 0,  -,  3, -3]
+    - [ 2,  2, -2, -2]
+    - [ 4,  4, -4, -4]
+  - name: magicant_boy
+    use_palettes: 3
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: magicant_girl
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: flying_man
+    use_palettes: [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2]
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: panda
+    use_palettes: 0
+    tile_order:
+    - [ 0,  1]
+    - [ 2,  3]
+  - name: magicant_adult
+    use_palettes: 2
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: flamingo
+    use_palettes: 2
+    tile_order:
+    - [ 0,  1]
+    - [ 2,  3]
+  - name: monkey
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: penguin
+    use_palettes: 0
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: cat
+    use_palettes: 2
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: unused
+    use_palettes: 0

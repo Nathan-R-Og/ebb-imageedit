@@ -1,0 +1,110 @@
+binary: dumped/chr/characters6.bin
+address: 0x5a810
+size: 0x800
+type: sprite
+assumed_palettes:
+  #generic sprite palette
+  - [-1, 0xF, 0x00, 0x30] #greyscale
+  - [-1, 0xF, 0x16, 0x37] #black/red/tan
+  - [-1, 0xF, 0x24, 0x37] #black/pink/tan
+  - [-1, 0xF, 0x12, 0x37] #black/blue/tan
+data:
+  - [0, unused]
+  - [0x20, bb_gang]
+  - [0x80, scruffy_woman]
+  - [0xA0, pilot]
+  - [0x100, bb_gang]
+  - [0x180, pilot]
+  - [0x200, scruffy_woman]
+  - [0x220, scruffy_guy]
+  - [0x280, scruffy_woman]
+  - [0x2a0, overalls_guy]
+  - [0x300, scruffy_guy]
+  - [0x380, overalls_guy]
+  - [0x400, scruffy_woman]
+  - [0x420, ponytail_girl2]
+  - [0x480, scruffy_woman]
+  - [0x4a0, policeman2]
+  - [0x500, ponytail_girl2]
+  - [0x580, policeman2]
+  - [0x600, scruffy_woman]
+  - [0x620, punk]
+  - [0x680, scruffy_woman]
+  - [0x6a0, george_crystal]
+  - [0x6c0, livehouse_sign]
+  - [0x700, punk]
+  - [0x780, crystal_particle]
+  - [0x790, unused]
+  - [0x7a0, george_crystal]
+  - [0x7c0, livehouse_sign]
+styling:
+  - name: bb_gang
+    use_palettes: 3
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: scruffy_woman
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: pilot
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: overalls_guy
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: scruffy_guy
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: ponytail_girl2
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: policeman2
+    use_palettes: 3
+    tile_order:
+    - [ 0,  1, -1,  -,  2,  3, -3, -2]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: crystal_particle
+    use_palettes: 0
+  - name: george_crystal
+    use_palettes: 0
+    tile_order:
+    - [ 0,  1]
+    - [ 2,  3]
+  - name: punk
+    use_palettes: 2
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: livehouse_sign
+    use_palettes: 2
+    tile_order:
+    - [ 0,  1,  2,  3]
+    - [ 4,  5,  6,  7]
+  - name: unused
+    use_palettes: 0

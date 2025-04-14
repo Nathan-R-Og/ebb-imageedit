@@ -1,0 +1,101 @@
+binary: dumped/chr/characters3.bin
+address: 0x59010
+size: 0x800
+type: sprite
+assumed_palettes:
+  #generic sprite palette
+  - [-1, 0xF, 0x00, 0x30] #greyscale
+  - [-1, 0xF, 0x16, 0x37] #black/red/tan
+  - [-1, 0xF, 0x24, 0x37] #black/pink/tan
+  - [-1, 0xF, 0x12, 0x37] #black/blue/tan
+data:
+  - [0, unused]
+  - [0x20, cap_kid]
+  - [0x80, janitor]
+  - [0xA0, headband_kid]
+  - [0x100, cap_kid]
+  - [0x180, headband_kid]
+  - [0x200, janitor]
+  - [0x220, longhair_woman]
+  - [0x280, janitor]
+  - [0x2a0, pigtail_kid]
+  - [0x300, longhair_woman]
+  - [0x380, pigtail_kid]
+  - [0x400, janitor]
+  - [0x420, longface_man]
+  - [0x480, janitor]
+  - [0x4a0, ponytail_kid]
+  - [0x500, longface_man]
+  - [0x580, ponytail_kid]
+  - [0x600, janitor]
+  - [0x620, mayor]
+  - [0x680, janitor]
+  - [0x6a0, smallcap_kid]
+  - [0x700, mayor]
+  - [0x780, smallcap_kid]
+styling:
+  - name: cap_kid
+    use_palettes: [1, 1, 1, 1, 1, 1, 3, 3, 3, 3, 3, 3, 3, 3]
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: headband_kid #no blue
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: longhair_woman
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: pigtail_kid
+    use_palettes: [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2]
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: longface_man
+    use_palettes: 3
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: ponytail_kid
+    use_palettes: 2
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: mayor
+    use_palettes: 3
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: smallcap_kid
+    use_palettes: 3
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: janitor
+    use_palettes: 3
+    tile_order:
+    - [ 2,  3,  2,  3,  6,  7, -7, -6]
+    - [ 0,  1, -1,  -,  4,  5, -5, -4]
+    - [10, 11, 10, 11,-11,-10,-11,-10]
+    - [ 8,  9, 12, 13, -9, -8,-13,-12]
+  - name: unused
+    use_palettes: 0

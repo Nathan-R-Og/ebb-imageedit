@@ -49,10 +49,14 @@ def PngToTilePng(image:str):
 
             #get pixel data
             data = cropped_img.tobytes()
-            data2 = ImageOps.mirror(cropped_img).tobytes()
 
             exists = data in tiles
-            exists_flipped_h = data2 in tiles
+
+            exists_flipped_h = False
+
+            if whatIs == "sprite":
+                data2 = ImageOps.mirror(cropped_img).tobytes()
+                exists_flipped_h = data2 in tiles
 
 
             #check if already exists
@@ -125,6 +129,7 @@ def pixel_to_id(color):
     return id
 
 def PngTo2bpp(image:Image, style:dict={}, pal:list=[]):
+    image.save("TESTER.png")
     out_bytes = bytearray()
 
     for y in range(image.size[1] // 8):
@@ -133,10 +138,12 @@ def PngTo2bpp(image:Image, style:dict={}, pal:list=[]):
             a = (x*8, y*8, (x+1)*8, (y+1)*8)
             cropped_img:Image = image.crop(a)
 
+
             #check if alpha
             #skip if so
             lohi = cropped_img.getcolors(maxcolors=4)
             if (len(lohi) == 1 and lohi[0][1] == (0,0,0,0)) and len(out_bytes) > 0:
+                print("balls")
                 continue
 
 
@@ -170,8 +177,6 @@ def PngTo2bpp(image:Image, style:dict={}, pal:list=[]):
                 elif type(style["use_palettes"]) == int:
                     assumed_set = pal[style["use_palettes"]]
 
-
-            #if palette didnt exist already, throw it in
             if freebie != -1 and len(assumed_set) == 0:
                 assumed_set = paletted_colors
 

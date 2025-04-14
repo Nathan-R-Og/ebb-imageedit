@@ -1,0 +1,101 @@
+binary: dumped/chr/characters2.bin
+address: 0x58810
+size: 0x800
+type: sprite
+assumed_palettes:
+  #generic sprite palette
+  - [-1, 0xF, 0x00, 0x30] #greyscale
+  - [-1, 0xF, 0x16, 0x37] #black/red/tan
+  - [-1, 0xF, 0x24, 0x37] #black/pink/tan
+  - [-1, 0xF, 0x12, 0x37] #black/blue/tan
+data:
+  - [0, unused]
+  - [0x20, moustache_man]
+  - [0x80, woman]
+  - [0xA0, man]
+  - [0x100, moustache_man]
+  - [0x180, man]
+  - [0x200, woman]
+  - [0x220, policeman]
+  - [0x280, woman]
+  - [0x2a0, receptionist]
+  - [0x300, policeman]
+  - [0x380, receptionist]
+  - [0x400, woman]
+  - [0x420, big_lady]
+  - [0x480, woman]
+  - [0x4a0, cool_guy]
+  - [0x500, big_lady]
+  - [0x580, cool_guy]
+  - [0x600, woman]
+  - [0x620, pigpen]
+  - [0x680, woman]
+  - [0x6a0, old_woman]
+  - [0x700, pigpen]
+  - [0x780, old_woman]
+styling:
+  - name: moustache_man
+    use_palettes: 3
+    tile_order:
+    - [ 0,  1, -1,  -,  2,  3, -3, -2]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: man
+    use_palettes: 3
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: policeman
+    use_palettes: 3
+    tile_order:
+    - [ 0,  1, -1,  -,  2,  3, -3, -2]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: receptionist
+    use_palettes: 2
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: big_lady
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1, -1,  -,  2,  3, -3, -2]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: cool_guy
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: pigpen
+    use_palettes: [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2]
+    tile_order:
+    - [ 0,  1,  0,  1,  2,  3,  2,  3]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: old_woman
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1, -1,  -,  2,  3, -3, -2]
+    - [ 6,  7, -7, -6,  8,  9, -9, -8]
+    - [ 4,  5,  4,  5, -5, -4, -5, -4]
+    - [10, 11, 12, 13,-11,-10,-13,-12]
+  - name: woman
+    use_palettes: 1
+    tile_order:
+    - [ 2,  3,  2,  3,  6,  7, -7, -6]
+    - [ 0,  1, -1,  -,  4,  5, -5, -4]
+    - [10, 11, 10, 11,-11,-10,-11,-10]
+    - [ 8,  9, 12, 13, -9, -8,-13,-12]
+  - name: unused
+    use_palettes: 0

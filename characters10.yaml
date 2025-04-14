@@ -1,0 +1,54 @@
+binary: dumped/chr/characters10.bin
+address: 0x5c810
+size: 0x800
+type: sprite
+assumed_palettes:
+  #generic sprite palette
+  - [-1, 0xF, 0x00, 0x30] #greyscale
+  - [-1, 0xF, 0x16, 0x37] #black/red/tan
+  - [-1, 0xF, 0x24, 0x37] #black/pink/tan
+  - [-1, 0xF, 0x12, 0x37] #black/blue/tan
+data:
+  - [0, unused]
+  - [0x10, fish]
+  - [0x50, cracks]
+  - [0x70, unused]
+  - [0xD0, platform]
+  - [0x100, EVE_destroyed]
+  - [0x140, unused]
+  - [0x1D0, platform]
+  - [0x200, EVE_destroyed]
+  - [0x240, unused]
+  - [0x2D0, platform]
+  - [0x300, EVE]
+styling:
+  - name: fish
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1]
+    - [ 2,  3]
+  - name: cracks
+    use_palettes: 0
+    tile_order:
+    - [ 0,  1]
+  - name: EVE_destroyed
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1,  2,  3]
+    - [ 4,  5,  6,  7]
+  - name: platform
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1,  2]
+    - [ 3,  4,  5]
+    - [ 6,  7,  8]
+  - name: EVE_2
+    use_palettes: 1
+    tile_order:
+    - [ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15]
+    - [16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
+    - [32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47]
+    - [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63]
+    - [64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79]
+  - name: unused
+    use_palettes: 0

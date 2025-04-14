@@ -105,6 +105,8 @@ def Convert(data:bytearray, outpath:str, assumed_palettes:list, style:dict):
             if tileId == "-":
                 tileId = 0
                 isFlipped = True
+            elif tileId == "b":
+                isPadding = True
             else:
                 isFlipped = tileId < 0
 
@@ -132,10 +134,6 @@ def Convert(data:bytearray, outpath:str, assumed_palettes:list, style:dict):
             #but JUST IN CASE!!!
             newImage.paste(Image.alpha_composite(newImage.crop(a), tile), a)
 
-            if x == newSize[0]-1 and isPadding:
-                a = (0, 0, a[2], a[3])
-                newImage = newImage.crop(a)
-                break
             i += 1
 
 
