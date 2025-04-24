@@ -1,5 +1,4 @@
-binary: dumped/chr/characters8.bin
-address: 0x5b810
+path: graphics/
 size: 0x800
 type: sprite
 assumed_palettes:
@@ -39,12 +38,6 @@ data:
   - [0x700, maria_fade]
   - [0x780, piano]
   - [0x7c0, dragon]
-
-
-
-  - [0x780, piano]
-  - [0x7c0, dragon]
-
 styling:
   - name: grave
     use_palettes: 1

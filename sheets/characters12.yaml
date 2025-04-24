@@ -1,5 +1,4 @@
-binary: dumped/chr/characters1.bin
-address: 0x5d810
+path: graphics/
 size: 0x800
 type: sprite
 assumed_palettes:
@@ -149,7 +148,6 @@ styling:
   - name: rock
     use_palettes: 1
     tile_order:
-    - [2, 0, 1, b, 2, 0, 1, b]
     - [2, 0, 1, b, 2, 0, 1, b]
     - [6, 3, 4, 5, 6, 7, 8, 5]
   - name: unused

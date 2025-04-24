@@ -1,5 +1,4 @@
-binary: dumped/chr/characters11.bin
-address: 0x5d010
+path: graphics/
 size: 0x800
 type: sprite
 assumed_palettes:
@@ -26,7 +25,7 @@ data:
   - [0x600, unused]
   - [0x620, tank]
 styling:
-  - name: guitarist
+  - name: guitarist_lacking
     use_palettes: 3
     tile_order:
     - [ 0,  1,  0,  1,  2,  3,  2,  3]

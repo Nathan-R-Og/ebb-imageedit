@@ -1,5 +1,4 @@
-binary: dumped/chr/characters5.bin
-address: 0x5a010
+path: graphics/
 size: 0x800
 type: sprite
 assumed_palettes:

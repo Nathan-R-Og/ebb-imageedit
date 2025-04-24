@@ -1,5 +1,4 @@
-binary: dumped/chr/characters9.bin
-address: 0x5c010
+path: graphics/
 size: 0x800
 type: sprite
 assumed_palettes:
@@ -13,13 +12,14 @@ data:
   - [0x10, fish]
   - [0x50, cracks]
   - [0x70, unused]
+  - [0xD0, platform]
   - [0x100, EVE_destroyed]
   - [0x140, unused]
-  - [0x170, train]
+  - [0x1D0, platform]
   - [0x200, EVE_destroyed]
   - [0x240, unused]
-  - [0x250, train]
-  - [0x300, EVE]
+  - [0x2D0, platform]
+  - [0x300, EVE_2]
 styling:
   - name: fish
     use_palettes: 1
@@ -35,13 +35,13 @@ styling:
     tile_order:
     - [ 0,  1,  2,  3]
     - [ 4,  5,  6,  7]
-  - name: train
-    use_palettes: 0
+  - name: platform
+    use_palettes: 1
     tile_order:
-    - [14, 15, 16,  3,  4,  5,  9, 10]
-    - [ 0,  1,  2,  6,  7,  8,  b,  b]
-    - [11, 12, 13, 17, 18, 19,  b,  b]
-  - name: EVE
+    - [ 0,  1,  2]
+    - [ 3,  4,  5]
+    - [ 6,  7,  8]
+  - name: EVE_2
     use_palettes: 1
     tile_order:
     - [ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15]

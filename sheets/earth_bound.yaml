@@ -1,5 +1,4 @@
-binary: dumped/chr/characters1.bin
-address: 0x76010
+path: graphics/
 size: 0x800
 type: bg
 assumed_palettes:
