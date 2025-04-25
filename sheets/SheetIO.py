@@ -318,13 +318,26 @@ class SheetIO(object):
         unique_tiles = {}
         for y in range(len(tile_order)):
             for x in range(len(tile_order[y])):
+                isflipped = False
+
                 #get tile
                 tile = tile_order[y][x]
-                if tile == "-":
-                    tile = 0
-                elif tile == "b":
+                if tile == "b":
+                    #is blank
                     continue
                 else:
+                    #EDGE CASE
+                    #if the first entry of this tile is flipped, note that as a boolean
+                    #this way when the image is retrieved it is flipped to turn it into the normal version
+
+                    if tile == "-":
+                        #is 0 flipped
+                        tile = 0
+                        isflipped = True
+                    #is negative
+                    elif tile < 0:
+                        isflipped = True
+
                     tile = abs(tile)
 
                 if tile in list(unique_tiles.keys()):
@@ -332,6 +345,9 @@ class SheetIO(object):
 
                 a = (x*8, y*8, (x+1)*8, (y+1)*8)
                 unique_tiles[tile] = image.crop(a)
+                if isflipped:
+                    unique_tiles[tile] = ImageOps.mirror(unique_tiles[tile])
+
 
         #sort them back into their "original order"
         #or, if this is homebrew, just their intended chr order
@@ -422,8 +438,10 @@ class SheetIO(object):
                     #check if alpha
                     #skip if so
                     lohi = cropped_img.getcolors(maxcolors=4)
-                    if (len(lohi) == 1 and lohi[0][1] == (0,0,0,0)) and len(file_bytes) > 0:
-                        print("skipping alpha...")
+                    if len(lohi) == 1 and lohi[0][1] == (0,0,0,0):
+                        #pad with lo
+                        for i in range(16):
+                            file_bytes.append(0)
                         continue
 
                     #get all unique colors and make a similar palette to ram
