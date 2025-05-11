@@ -1,8 +1,7 @@
 from PyQt6.QtWidgets import *
 from PyQt6.QtCore import *
 from PyQt6.QtGui import *
-import sys
-import yaml
+import sys, os, yaml
 import numpy as np
 
 from PIL import Image, ImageOps
@@ -49,36 +48,29 @@ class Painter(QWidget):
         painter.end()
 
 class SpritePainter(QWidget):
-    def __init__(self, file_path=""):
+    def __init__(self):
         super(SpritePainter, self).__init__(None)
-        self.defs = []
         self.fps = 10
         self.frame = 0
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.next_frame)
         self.timer.start(round(1000 / self.fps))
 
-        if file_path != "":
-            self.get_def_data(file_path)
-
-    def get_def_data(self, path):
-        spriteDefs = yaml.safe_load(open(path, "r"))
-        self.defs += spriteDefs
-
-    def addDef(self, path):
-        self.get_def_data(path)
-
     def next_frame(self):
         self.frame += 1
-        if self.frame >= len(self.defs):
+        global loaded_definitions
+        if self.frame >= len(loaded_definitions):
             self.frame = 0
         self.timer.start(round(1000 / self.fps))
         self.update()
 
     def paintEvent(self, event):
         global table_mix
+        global loaded_definitions
 
-        if len(self.defs) == 0:
+        if len(loaded_definitions) == 0:
+            return
+        if table_mix == None:
             return
 
         painter = QPainter(self)
@@ -89,7 +81,11 @@ class SpritePainter(QWidget):
                 image = table_mix.crop(space)
                 images.append(image)
 
-        definition = self.defs[self.frame]
+        defis = []
+        for defi in loaded_definitions:
+            defis += defi.definition_data
+
+        definition = defis[self.frame]
         ppu_offset = definition["ppu"]
 
         p1 = definition["p1"]
@@ -139,14 +135,14 @@ class Window(QWidget):
         table_0_h = QHBoxLayout()
         centerBtn = QPushButton(text="Load Table 0", parent=self)
         centerBtn.clicked.connect(lambda: self.load_table(0))
-        centerBtn.setFixedSize(100, 60)
+        centerBtn.setFixedSize(100, 64)
         table_0_h.addWidget(centerBtn)
         table_0_h.addWidget(Painter(None, 0))
 
         table_1_h = QHBoxLayout()
         centerBtn2 = QPushButton(text="Load Table 1", parent=self)
         centerBtn2.clicked.connect(lambda: self.load_table(1))
-        centerBtn2.setFixedSize(100, 60)
+        centerBtn2.setFixedSize(100, 64)
         table_1_h.addWidget(centerBtn2)
         table_1_h.addWidget(Painter(None, 1))
 
@@ -154,23 +150,31 @@ class Window(QWidget):
         spritedef_h = QHBoxLayout()
         centerBtn4 = QPushButton(text="Load Spritedef", parent=self)
         centerBtn4.clicked.connect(self.load_spritedef)
-        centerBtn4.setFixedSize(100, 60)
+        centerBtn4.setFixedSize(100, 64)
         spritedef_h.addWidget(centerBtn4)
         spritedef_h.addWidget(self.sprites)
+
+        self.definition_list = Example()
 
         layout = QVBoxLayout()
         layout.addLayout(table_0_h)
         layout.addLayout(table_1_h)
         layout.addLayout(spritedef_h)
+        layout.addWidget(self.definition_list)
         self.setLayout(layout)
 
     def load_spritedef(self):
         file_dialog = QFileDialog()
-        file_path = file_dialog.getOpenFileName(self, "Select File", "", "All Files (*.*)")[0]
+        file_path = file_dialog.getOpenFileNames(self, "Select File", "", "Definition Files (*.yaml)")[0]
         if not file_path:
             return
 
-        self.sprites.addDef(file_path)
+        global loaded_definitions
+        for path in file_path:
+            loaded_definitions.append(DefinitionEntry(path))
+        self.definition_list.update()
+        global load_operation
+        load_operation = 1
 
     def create_mixtable(self):
         global table_0
@@ -189,7 +193,7 @@ class Window(QWidget):
         global table_0
         global table_1
         file_dialog = QFileDialog()
-        file_path = file_dialog.getOpenFileName(self, "Select File", "", "All Files (*.*)")[0]
+        file_path = file_dialog.getOpenFileName(self, "Select File", "", "Png Files (*.png)")[0]
         if not file_path:
             return
 
@@ -200,6 +204,104 @@ class Window(QWidget):
         elif id == 1:
             table_1 = image
         self.create_mixtable()
+
+class DefinitionEntry(QListWidgetItem):
+    def __init__(self, file):
+        super().__init__()
+        self.filepath = file
+        self.definition_data = self.get_def_data(file)
+
+    def get_def_data(self, path):
+        return yaml.safe_load(open(path, "r"))
+
+loaded_definitions : list[DefinitionEntry] = []
+load_operation = 0
+
+class Example(QWidget):
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Delete:
+            if self.listWidget.selectedItems():
+                item = self.listWidget.currentItem()
+                row = self.listWidget.row(item)
+                self.listWidget.takeItem(row)
+                self.do_row_move()
+        else:
+            super().keyPressEvent(event)
+
+
+    def add_item(self, fajl):
+        item = QListWidgetItem()
+        item.setTextAlignment(Qt.AlignmentFlag.AlignBottom)
+        item.setText(fajl)
+        return item
+
+    def __init__(self):
+        super().__init__()
+        myself = QHBoxLayout(self)
+
+        #make list
+        self.listWidget = QListWidget()
+        self.listWidget.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.listWidget.setMovement(QListView.Movement.Snap)
+        self.listWidget.model().rowsMoved.connect(self.do_row_move)
+        #self.listWidget.itemSelectionChanged.connect(self.on_selection_change)
+        myself.addWidget(self.listWidget)
+
+        actual_vbox = QVBoxLayout(self)
+
+        palettes = QHBoxLayout()
+        palettes_label = QLabel("Palettes: ")
+        palettes.addWidget(palettes_label)
+        self.def_palette_1 = QSpinBox()
+        self.def_palette_1.setMaximum(0b11)
+        self.def_palette_1.setMinimum(0)
+        palettes.addWidget(self.def_palette_1)
+        self.def_palette_2 = QSpinBox()
+        self.def_palette_2.setMaximum(0b11)
+        self.def_palette_2.setMinimum(0)
+        palettes.addWidget(self.def_palette_2)
+        actual_vbox.addLayout(palettes)
+        myself.addLayout(actual_vbox)
+
+    def on_selection_change(self):
+        global loaded_definitions
+        item = self.listWidget.currentItem()
+        definition = [file.definition_data for file in loaded_definitions if file.filepath == item.text()]
+        if len(definition) > 0:
+            definition = definition[0]
+
+        self.def_palette_1.setValue(definition[0]["p1"])
+        self.def_palette_2.setValue(definition[0]["p2"])
+
+    def paintEvent(self, event):
+        self.do_update()
+
+    def do_row_move(self):
+        global load_operation
+        load_operation = -1
+        self.do_update()
+
+    def do_update(self):
+        global loaded_definitions
+        global load_operation
+
+        if len(loaded_definitions) == 0:
+            return
+
+        files = []
+        for i in range(self.listWidget.count()):
+            files.append(self.listWidget.item(i).text())
+
+        self.listWidget.clear()
+        if load_operation == -1:
+            loaded_definitions = [DefinitionEntry(file) for file in files]
+
+        load_operation = 0
+
+        for foo in loaded_definitions:
+            self.listWidget.addItem(self.add_item(foo.filepath))
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
