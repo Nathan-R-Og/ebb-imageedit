@@ -30,6 +30,79 @@ class SheetIO(object):
             key = list(split.keys())[0]
             return Split(key, split[key])
 
+
+    def to_png(byte_data, out_path, is_sprite=False):
+        out_path_no_file = os.path.dirname(out_path)
+        #setup filesystem
+        if not os.path.exists(out_path_no_file):
+            os.makedirs(out_path_no_file)
+
+        print(f"ripping {os.path.basename(out_path)}...")
+
+        #####Convert
+        tiles = []
+        i = 0
+        while i < len(byte_data):
+            #the new tile
+            tile = Image.new("RGBA", (8,8))
+
+            #2bpp to palette ids
+            lo = byte_data[i:i+8]
+            hi = byte_data[i+8:i+0x10]
+            ids = []
+            for byte in range(8):
+                for bit in range(8):
+                    hib = (hi[byte] >> (7 - bit)) & 1
+                    lob = (lo[byte] >> (7 - bit)) & 1
+                    ids.append((hib << 1) | lob)
+
+            #place down colors
+            for y in range(8):
+                for x in range(8):
+                    #get the value of this pixel
+                    getId = ids[x+(y*8)]
+
+                    #get the palette of this tile
+                    this_palette = [-1, 0xF, 0x00, 0x30] if is_sprite else [0xF, 0x00, 0x10, 0x30]
+
+                    #get the color out of the palette
+                    color = this_palette[getId]
+                    #if color is alpha
+                    if color == -1:
+                        tile.putpixel((x, y), alpha_color)
+                        continue
+                    #else, put palette file color
+                    tile.putpixel((x, y), tuple(NES_PALETTE[color*3: (color+1)*3]))
+            #add tile to array
+            tiles.append(tile)
+            i += 0x10
+
+        #construct the image with the tiles created
+
+        #generic padding tile
+        padTile = Image.new("RGBA", (8,8))
+        padTile.paste(alpha_color, (0, 0, 8, 8))
+
+        #construct a tilemap image from only unique tiles
+        #square image
+        newWidth = 0x10
+        newHeight = (len(byte_data)//newWidth)//0x10
+        newSize = (newWidth, newHeight)
+        newImage = Image.new("RGBA", (newSize[0]*8, newSize[1]*8))
+
+        #iteerate through all the tiles
+        for y in range(newHeight):
+            for x in range(newWidth):
+                i = (y*newWidth)+x
+                tiles
+                #make rect
+                a = (x*8, y*8, (x+1)*8, (y+1)*8)
+                #paste :D
+                newImage.paste(tiles[i], a)
+
+        newImage.convert("RGBA")
+        newImage.save(f"{out_path}")
+
     def decompile(byte_data, data_loaded, out_path):
         types = data_loaded["type"]
         assumed_palettes = data_loaded["assumed_palettes"]
@@ -496,21 +569,54 @@ class SheetIO(object):
         return sheet_bytes
 
 
-def Extract():
+def Extract_o():
     for sheet_yaml in glob("sheets/*.yaml"):
         general_data = yaml.safe_load(open(sheet_yaml, "r"))
-        general_name = general_data["path"]+os.path.basename(sheet_yaml).removesuffix(".yaml")
+        general_name = general_data["path"]
+        base_name = os.path.basename(sheet_yaml).removesuffix(".yaml")
 
-        byte_data = open(f"split/{general_name}.bin", "rb").read()
+        byte_data = open(f"split/{general_name}/{base_name}.bin", "rb").read()
         SheetIO.decompile(byte_data, general_data, f"extract/{general_name}/")
+
+def Extract():
+    sprite = [
+        "characters1",
+        "characters2",
+        "characters3",
+        "characters4",
+        "characters5",
+        "characters6",
+        "characters7",
+        "characters8",
+        "characters9",
+        "characters10",
+        "characters11",
+        "characters12",
+        "credits_characters1",
+        "credits_characters2",
+        "credits_characters3",
+    ]
+    for sheet in glob("split/graphics/*.bin"):
+        base_name = os.path.basename(sheet).removesuffix(".bin")
+        general_name = "graphics"
+        is_sprite = base_name in sprite
+        byte_data = open(sheet, "rb").read()
+        SheetIO.to_png(byte_data, f"extract/{general_name}/{base_name}.png", is_sprite)
+
+    for sheet in glob("split/battle/graphics/*.bin"):
+        base_name = os.path.basename(sheet).removesuffix(".bin")
+        general_name = "battle/graphics"
+        byte_data = open(sheet, "rb").read()
+        SheetIO.to_png(byte_data, f"extract/{general_name}/{base_name}.png", False)
 
 def Recompile():
     for sheet_yaml in glob("sheets/*.yaml"):
         general_data = yaml.safe_load(open(sheet_yaml, "r"))
-        general_name = general_data["path"]+os.path.basename(sheet_yaml).removesuffix(".yaml")
+        general_name = general_data["path"]
+        base_name = os.path.basename(sheet_yaml).removesuffix(".yaml")
 
-        new_byte_data = SheetIO.compile(general_data, f"extract/{general_name}/")
-        out_file = f"recompile/{general_name}.bin"
+        new_byte_data = SheetIO.compile(general_data, f"extract/{general_name}/{base_name}.png")
+        out_file = f"recompile/{general_name}/{base_name}.bin"
         if not os.path.exists(os.path.dirname(out_file)):
             os.makedirs(os.path.dirname(out_file))
         open(out_file, "wb").write(new_byte_data)
