@@ -786,8 +786,7 @@ class SpriteDefinitionIO(object):
             i += 4
             defs.append(dict)
 
-        lines = yaml.dump(defs, sort_keys=False)
-        return lines
+        return yaml.dump(defs, sort_keys=False)
     def compile(stream):
         #TODO: THIS REQUIRES LINKING!!!
         data_loaded = yaml.safe_load(stream)
@@ -806,6 +805,237 @@ class SpriteDefinitionIO(object):
             output.append(definition["ppu"])
             output.append((definition["unkArg2"] << 5) | (definition["unkArg1"] << 4) | (definition["p2"] << 2) | definition["p1"])
         return output
+
+
+class MapIO(object):
+
+    color_map = {
+        (0,0,0,255): 0,
+        (102,102,102,255): 1,
+        (173,173,173,255): 2,
+        (255,254,255,255): 3,
+    }
+
+    def decompile(byte_data):
+        #Map height * width in terms of 64x64 chunks
+        mapTiles = []
+        mapTileset = [] #second tileset
+        mapEvent = []
+
+        #Same as above, divided by 4
+        sectorPalette = []
+        sectorArea = []
+        sectorTileset1 = []
+        sectorTileset2 = []
+
+        banksMap = [0x2000, 0x6000, 0xA000, 0xE000, 0x12000, 0x16000, 0x1A000]
+        curBank = 0
+        for offset in banksMap:
+            for i in range(0x2000):
+                tileOffs = offset + i #Offset of current 64x64 map data
+                currentByte = byte_data[tileOffs]
+                mapTiles.append(currentByte & 0b00111111); #Get lower 6 bits only of map data, store in array
+                mapTileset.append((currentByte & 0b01000000) != 0)
+                mapEvent.append((currentByte & 0b10000000) != 0)
+
+            curBank += 1
+
+        #Lower 6 bits of 3800-3FFF (skip 1st bank)
+        banksSector = [0x5800, 0x9800, 0xD800, 0x11800, 0x15800, 0x19800, 0x1D800]
+        curBank = 0
+        for offset in banksSector:
+            for i in range(0x200):
+                tileOffs = offset + (i * 4) #Offset of current 256x256 sector data
+                #First 6 bits of each byte
+                sectorPalette.append(byte_data[tileOffs] & 0b00111111)
+                sectorArea.append(byte_data[tileOffs+1] & 0b00111111)
+                sectorTileset1.append(byte_data[tileOffs+2] & 0b00111111)
+                sectorTileset2.append(byte_data[tileOffs+3] & 0b00111111)
+            curBank += 1
+
+        #Lower 6 bits of 3000-37FF
+        graphics16 = []
+        banks16 = [0x1000, 0x5000, 0x9000, 0xD000, 0x11000, 0x15000, 0x19000, 0x1D000]
+        palettes64 = []
+        curBank = 0
+        for offset in banks16:
+            for i in range(0x200):
+                tileset = (curBank * 4) + (i // 0x80) #4 tilesets for each bank
+                tileset *= 64
+                tileOffs = offset + (i * 4) #Offset of current 16x16 tile data
+                graphics16.append([
+                    tileset + (  byte_data[tileOffs] & 0b00111111),
+                    tileset + (byte_data[tileOffs+1] & 0b00111111),
+                    tileset + (byte_data[tileOffs+2] & 0b00111111),
+                    tileset + (byte_data[tileOffs+3] & 0b00111111),
+                    i & 0b01111111
+                ])
+            for i in range(0x100):
+                paletteOffs = offset + (i * 0x10); #Offset of current 64x64 palette data
+                new_palette = []
+                for j in range(0x10):
+                    value = (byte_data[paletteOffs + j] & 0b11000000) >> 6
+                    new_palette.append(value)
+                palettes64.append(new_palette)
+            curBank += 1
+
+        #2000-2FFF
+        banks64 = [0, 0x4000, 0x8000, 0xC000, 0x10000, 0x14000, 0x18000, 0x1C000]
+        graphics64 = []
+        curBank = 0
+        for offset in banks64:
+            for i in range(0x100):
+                tileset = (curBank * 4) + (i // 64); #4 tilesets for each bank
+                tileOffs = offset + (i * 16); #Offset of current 64x64 palette data
+                curTiles = [] #Tile16's
+                altTileset = []
+                tileNums = []
+
+                #Iterate through the 64x64 tile data & decode it
+                for j in range(0x10):
+                    subOffs = tileOffs + j
+                    tileNum = byte_data[subOffs] & 0b01111111
+                    #This gets the correct 16x16 tile from the loaded list (ignoring all that alternate tileset crap)
+                    curTiles.append((tileset * 128) + tileNum)
+                    tileNums.append(tileNum)
+
+                    if (byte_data[subOffs] & 0b10000000): #If last bit is set, use alternate tileset
+                        altTileset.append(j)
+
+                graphics64.append({
+                    "curTiles": curTiles,
+                    "palette64": (curBank*0x100)+i,
+                    "altTileset": altTileset,
+                    "tileNums": tileNums
+                })
+            curBank += 1
+
+        dict = {
+            "graphics64": graphics64,
+            "palettes64": palettes64,
+            "graphics16": graphics16,
+            "mapTiles": mapTiles,
+            "mapTileset": mapTileset,
+            "mapEvent": mapEvent,
+            "sectorPalette": sectorPalette,
+            "sectorArea": sectorArea,
+            "sectorTileset1": sectorTileset1,
+            "sectorTileset2": sectorTileset2
+        }
+
+        return yaml.dump(dict, sort_keys=False, default_flow_style=True)
+
+    def compile(stream):
+        data_loaded = yaml.safe_load(stream)
+        #TODO: dont make it a set size. hard!
+        out_bytes = bytearray(0x1e000)
+
+
+        #Map height * width in terms of 64x64 chunks
+        mapTiles = data_loaded["mapTiles"]
+        mapTileset = data_loaded["mapTileset"] #second tileset
+        mapEvent = data_loaded["mapEvent"]
+
+        #Same as above, divided by 4
+        sectorPalette = data_loaded["sectorPalette"]
+        sectorArea = data_loaded["sectorArea"]
+        sectorTileset1 = data_loaded["sectorTileset1"]
+        sectorTileset2 = data_loaded["sectorTileset2"]
+
+        graphics16 = data_loaded["graphics16"]
+        graphics64 = data_loaded["graphics64"]
+        palettes64 = data_loaded["palettes64"]
+
+        banksMap = [0x2000, 0x6000, 0xA000, 0xE000, 0x12000, 0x16000, 0x1A000]
+        curBank = 0
+        array_i = 0
+        for offset in banksMap:
+            for i in range(0x2000):
+                tileOffs = offset + i #Offset of current 64x64 map data
+                currentByte = mapTiles[array_i] & 0b00111111
+                currentByte |= (int(mapTileset[array_i]) & 0b1) << 6
+                currentByte |= (int(mapEvent[array_i]) & 0b1) << 7
+                out_bytes[tileOffs] |= currentByte
+
+                array_i += 1
+
+            curBank += 1
+
+        #Lower 6 bits of 3800-3FFF (skip 1st bank)
+        banksSector = [0x5800, 0x9800, 0xD800, 0x11800, 0x15800, 0x19800, 0x1D800]
+        curBank = 0
+        array_i = 0
+        for offset in banksSector:
+            for i in range(0x200):
+                tileOffs = offset + (i * 4) #Offset of current 256x256 sector data
+                #First 6 bits of each byte
+                bytees = bytearray(4)
+                bytees[0] = sectorPalette[array_i] & 0b00111111
+                bytees[1] = sectorArea[array_i] & 0b00111111
+                bytees[2] = sectorTileset1[array_i] & 0b00111111
+                bytees[3] = sectorTileset2[array_i] & 0b00111111
+
+                for i in range(len(bytees)):
+                    out_bytes[tileOffs+i] |= bytees[i]
+                array_i += 1
+            curBank += 1
+
+        #Lower 6 bits of 3000-37FF
+        banks16 = [0x1000, 0x5000, 0x9000, 0xD000, 0x11000, 0x15000, 0x19000, 0x1D000]
+        curBank = 0
+        array_i = 0
+        array_p = 0
+        for offset in banks16:
+            for i in range(0x200):
+                tileset = (curBank * 4) + (i // 0x80) #4 tilesets for each bank
+                tileset *= 64
+                tileOffs = offset + (i * 4) #Offset of current 16x16 tile data
+
+                tile1 = graphics16[array_i][0]-tileset
+                tile2 = graphics16[array_i][1]-tileset
+                tile3 = graphics16[array_i][2]-tileset
+                tile4 = graphics16[array_i][3]-tileset
+                byte_data = bytearray([tile1, tile2, tile3, tile4])
+
+                for i in range(len(byte_data)):
+                    out_bytes[tileOffs+i] |= byte_data[i]
+
+                array_i += 1
+            for i in range(0x100):
+                paletteOffs = offset + (i * 0x10); #Offset of current 64x64 palette data
+                data = palettes64[array_p]
+                for j in range(0x10):
+                    value = (data[j] & 0b11) << 6
+                    out_bytes[paletteOffs+j] |= value
+                array_p += 1
+            curBank += 1
+
+        #2000-2FFF
+        banks64 = [0, 0x4000, 0x8000, 0xC000, 0x10000, 0x14000, 0x18000, 0x1C000]
+        curBank = 0
+        array_i = 0
+        for offset in banks64:
+            for i in range(0x100):
+                tileset = (curBank * 4) + (i // 64); #4 tilesets for each bank
+                tileOffs = offset + (i * 16); #Offset of current 64x64 palette data
+                curTiles = [] #Tile16's
+
+                #Iterate through the 64x64 tile data & decode it
+                for j in range(0x10):
+                    subOffs = tileOffs + j
+
+                    tileNum = graphics64[array_i]["tileNums"][j]
+                    out_bytes[subOffs] |= tileNum
+                    #This gets the correct 16x16 tile from the loaded list (ignoring all that alternate tileset crap)
+                    curTiles.append((tileset * 128) + tileNum)
+
+                    if j in graphics64[array_i]["altTileset"]:
+                        out_bytes[subOffs] |= 0b10000000
+
+                array_i += 1
+            curBank += 1
+
+        return out_bytes
 
 class Extractor(object):
     def Extract():
@@ -890,13 +1120,14 @@ class Extractor(object):
 
                     return out_file
                 elif type(use_thing) == str:
-                    return use_thing
+                    return use_thing.replace("\\", "/")
 
 
         structure_yaml = yaml.safe_load(open("split.yaml", 'r'))
         assembled_files = []
 
         for side in structure_yaml["splits"]:
+            skip_banks = 0
             for bank in structure_yaml["splits"][side]:
                 bank_bytes = bytearray()
                 bank_number = hex(bank["bank"]).replace("0x", "")
@@ -905,6 +1136,8 @@ class Extractor(object):
                         if len(split) > 1:
                             file = split[1]
                             gotten_file = get_file(f"/{file}")
+                            if gotten_file in assembled_files:
+                                continue
                             if not gotten_file in assembled_files:
                                 print(f"assembling {gotten_file}....")
                                 assembled_files.append(gotten_file)
@@ -913,6 +1146,8 @@ class Extractor(object):
                             fakeaddr = hex(split[0]).replace("0x", "")
                             usename = f"/{side}/bank{bank_number}/unk{fakeaddr}"
                             gotten_file = get_file(usename)
+                            if gotten_file in assembled_files:
+                                continue
                             if not gotten_file in assembled_files:
                                 print(f"assembling {gotten_file}....")
                                 assembled_files.append(gotten_file)
@@ -936,6 +1171,7 @@ class Extractor(object):
                     while len(bank_bytes) < 0x2000 - passed:
                         bank_bytes.append(0xFF)
 
+
                 rom_output += bank_bytes
 
         INES_NES20 = b'\x4E\x45\x53\x1A\x10\x20\x42\x00\x00\x00\x00\x00\x00\x00\x00\x00'
@@ -946,6 +1182,7 @@ class Extractor(object):
 
 
 if __name__ == "__main__":
+    sys.argv = ["extractor.py ", "r"]
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('mode', type=str)

@@ -45,3 +45,8 @@ types:
   extension: .yaml
   class: SpriteDefinitionIO
   recompile: yes
+
+- glob: [split/map.bin]
+  extension: .yaml
+  class: MapIO
+  recompile: yes

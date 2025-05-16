@@ -103,6 +103,113 @@ class SheetIO(object):
         newImage.convert("RGBA")
         newImage.save(f"{out_path}")
 
+    def to_binary(png, out_path, is_sprite=False):
+        out_path_no_file = os.path.dirname(out_path)
+        #setup filesystem
+        if not os.path.exists(out_path_no_file):
+            os.makedirs(out_path_no_file)
+
+        #make a generic bytearray
+        print(f"compiling file {png}...")
+        #get the split data for this file
+
+        #get the image path
+        image_path = png
+
+        #make a new image to compile
+        newImage = SheetIO.QuantitizeImage(Image.open(image_path))
+
+        newImage = SheetIO.PngToTilePng_real(newImage, 'sprite' if is_sprite else '')
+
+        #get the bytes from an image
+        ####PngTo2bpp
+        file_bytes = bytearray()
+        this_palette = [-1, 0xF, 0x00, 0x30] if is_sprite else [0xF, 0x00, 0x10, 0x30]
+
+        for y in range(newImage.size[1] // 8):
+            for x in range(newImage.size[0] // 8):
+                #get 8x8 slice
+                a = (x*8, y*8, (x+1)*8, (y+1)*8)
+                cropped_img:Image = newImage.crop(a)
+
+                #check if alpha
+                #skip if so
+                lohi = cropped_img.getcolors(maxcolors=4)
+                if len(lohi) == 1 and lohi[0][1] == (0,0,0,0):
+                    #pad with lo
+                    for i in range(16):
+                        file_bytes.append(0)
+                    continue
+
+                #get all unique colors and make a similar palette to ram
+                unique_colors = cropped_img.getcolors(maxcolors=4)
+                paletted_colors = []
+                for color in unique_colors:
+                    paletted_colors.append(SheetIO.pixel_to_id(color[1]))
+                paletted_colors.sort()
+
+                #check if that palette exists
+                #if not, throw it in the assumed_palettes list
+                assumed_set = this_palette
+
+                lo = bytearray() #lo bitplane
+                hi = bytearray() #hi bitplane
+                for pY in range(8):
+                    #get row
+                    colorIds = []
+                    for pX in range(8):
+                        color = cropped_img.getpixel((pX, pY))
+                        id = SheetIO.pixel_to_id(color)
+                        colorIds.append(assumed_set.index(id))
+
+                    #lo plane
+                    byte = 0
+                    for i in range(8):
+                        byte |= (colorIds[i] & 0b00000001) << (7 - i)
+                    lo.append(byte)
+
+                    #hi plane
+                    byte = 0
+                    for i in range(8):
+                        byte |= ((colorIds[i] & 0b00000010) >> 1) << (7 - i)
+                    hi.append(byte)
+                #write row
+                file_bytes += lo+hi
+
+        open(out_path, "wb").write(file_bytes)
+
+    #function to optimize an image as much as possible.
+    def PngToTilePng_real(in_image:Image, type):
+        #PIL.Images
+        image_tiles = []
+
+        for y in range(in_image.size[1] // 8):
+            for x in range(in_image.size[0] // 8):
+                #get 8x8 slice
+                a = (x*8, y*8, (x+1)*8, (y+1)*8)
+                cropped_img = in_image.crop(a)
+
+                image_tiles.append(cropped_img)
+
+        #construct a tilemap image from only unique tiles
+        newSize = (in_image.size[0]//8,in_image.size[1]//8)
+        newWidth, newHeight = newSize
+        newImage = Image.new("RGBA", in_image.size)
+
+        #iterate all images
+        for y in range(newHeight):
+            for x in range(newWidth):
+                i = x + (y * newWidth)
+                tile = image_tiles[i]
+
+                a = (x*8, y*8, (x+1)*8, (y+1)*8)
+                newImage.paste(tile, a)
+
+                i += 1
+        return newImage
+
+
+
     def decompile(byte_data, data_loaded, out_path):
         types = data_loaded["type"]
         assumed_palettes = data_loaded["assumed_palettes"]
@@ -421,7 +528,6 @@ class SheetIO(object):
                 if isflipped:
                     unique_tiles[tile] = ImageOps.mirror(unique_tiles[tile])
 
-
         #sort them back into their "original order"
         #or, if this is homebrew, just their intended chr order
         unique_tiles_sorted = list(unique_tiles.keys())
@@ -610,13 +716,30 @@ def Extract():
         SheetIO.to_png(byte_data, f"extract/{general_name}/{base_name}.png", False)
 
 def Recompile():
-    for sheet_yaml in glob("sheets/*.yaml"):
-        general_data = yaml.safe_load(open(sheet_yaml, "r"))
-        general_name = general_data["path"]
-        base_name = os.path.basename(sheet_yaml).removesuffix(".yaml")
+    sprite = [
+        "characters1",
+        "characters2",
+        "characters3",
+        "characters4",
+        "characters5",
+        "characters6",
+        "characters7",
+        "characters8",
+        "characters9",
+        "characters10",
+        "characters11",
+        "characters12",
+        "credits_characters1",
+        "credits_characters2",
+        "credits_characters3",
+    ]
+    for sheet in glob("extract/graphics/*.png"):
+        base_name = os.path.basename(sheet).removesuffix(".png")
+        general_name = "graphics"
+        is_sprite = base_name in sprite
+        SheetIO.to_binary(sheet, f"recompile/{general_name}/{base_name}.bin", is_sprite)
 
-        new_byte_data = SheetIO.compile(general_data, f"extract/{general_name}/{base_name}.png")
-        out_file = f"recompile/{general_name}/{base_name}.bin"
-        if not os.path.exists(os.path.dirname(out_file)):
-            os.makedirs(os.path.dirname(out_file))
-        open(out_file, "wb").write(new_byte_data)
+    for sheet in glob("extract/battle/graphics/*.png"):
+        base_name = os.path.basename(sheet).removesuffix(".png")
+        general_name = "battle/graphics"
+        SheetIO.to_binary(sheet, f"recompile/{general_name}/{base_name}.bin", False)
