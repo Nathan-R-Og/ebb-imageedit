@@ -1121,7 +1121,7 @@ splits:
       - [0, sprites/defs/characters1/NINTEN_UP1]
       - [4, sprites/defs/characters1/NINTEN_UP2]
       - [8, sprites/defs/characters1/NINTEN_RIGHT1]
-      - [0xC, sprites/defs/characters1/NINTEN_RIGHT1]
+      - [0xC, sprites/defs/characters1/NINTEN_RIGHT2]
       - [0x10, sprites/defs/characters1/NINTEN_DOWN1]
       - [0x14, sprites/defs/characters1/NINTEN_DOWN2]
       - [0x18, sprites/defs/characters1/NINTEN_LEFT1]
@@ -2656,6 +2656,8 @@ splits:
     - bank: 0x1F
       splits:
       - [0]
+      - [0x105, obj_typeinfo]
+      - [0x1BD]
       - [0x1ea2] #padding
       - [0x1f40, vectors]
   chr:

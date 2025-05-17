@@ -1182,7 +1182,6 @@ class Extractor(object):
 
 
 if __name__ == "__main__":
-    sys.argv = ["extractor.py ", "r"]
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('mode', type=str)

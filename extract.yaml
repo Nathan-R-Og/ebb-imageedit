@@ -37,11 +37,11 @@ types:
   class: BattleIO
   recompile: yes
 
-- glob: [split/sprites/tiles/*.bin]
+- glob: [split/sprites/tiles/*.bin, split/sprites/tiles/**/*.bin]
   extension: .yaml
   class: SpriteTileIO
   recompile: yes
-- glob: [split/sprites/defs/*.bin]
+- glob: [split/sprites/defs/*.bin, split/sprites/defs/**/*.bin]
   extension: .yaml
   class: SpriteDefinitionIO
   recompile: yes
