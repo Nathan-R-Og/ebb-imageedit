@@ -1,0 +1,50 @@
+QWidget {
+    font-family: "Earthbound Beginnings";
+    font-size: 16px;
+    background-color: black;
+}
+QLabel {
+    background-color: black;
+    color: white;
+}
+QToolButton {
+    background-color: black;
+    color: white;
+}
+QSpinBox {
+    background-color: black;
+    color: white;
+    border: 3px solid white;
+    border-radius: 3px;
+}
+QComboBox {
+    background-color: black;
+    color: white;
+    border: 3px solid white;
+    border-radius: 3px;
+}
+QAbstractItemView {
+    background-color: black;
+    color: white;
+    border: 3px solid white;
+    border-radius: 3px;
+}
+QAbstractItemModel:hover {
+    background-color: #4240ff; /* Sky blue on hover */
+}
+QToolBar {
+    border: 3px solid white;
+    border-radius: 3px;
+}
+QPushButton {
+    background-color: black;
+    color: white;
+    border: 3px solid white;
+    border-radius: 3px;
+}
+QToolButton:hover {
+    background-color: #4240ff; /* Sky blue on hover */
+}
+QToolButton:disabled {
+    color: #666; /* Sky blue on hover */
+}

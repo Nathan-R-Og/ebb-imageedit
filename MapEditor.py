@@ -6,9 +6,11 @@ import numpy as np
 
 from copy import deepcopy
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageDraw
 from PIL.ImageQt import ImageQt
 import yaml
+
+map_tile_properties = None
 
 class MapInfo(object):
 
@@ -68,6 +70,15 @@ class MapInfo(object):
             "sectorTileset2": self.sectorTileset2
         }
 
+        if type(self.palettes64[0]) == bytearray:
+           new = []
+           for array in self.palettes64:
+                s = []
+                for byte in array:
+                   s.append(byte)
+                new.append(s)
+           dict["palettes64"] = new
+
         return yaml.dump(dict, sort_keys=False, default_flow_style=True)
 
 
@@ -84,7 +95,6 @@ class MapInfo(object):
         self.sectorTileset2 = []
 
         banksMap = [0x2000, 0x6000, 0xA000, 0xE000, 0x12000, 0x16000, 0x1A000]
-        curBank = 0
         for offset in banksMap:
             for i in range(0x2000):
                 tileOffs = offset + i #Offset of current 64x64 map data
@@ -93,11 +103,8 @@ class MapInfo(object):
                 self.mapTileset.append((currentByte & 0b01000000) != 0)
                 self.mapEvent.append((currentByte & 0b10000000) != 0)
 
-            curBank += 1
-
         #Lower 6 bits of 3800-3FFF (skip 1st bank)
         banksSector = [0x5800, 0x9800, 0xD800, 0x11800, 0x15800, 0x19800, 0x1D800]
-        curBank = 0
         for offset in banksSector:
             for i in range(0x200):
                 tileOffs = offset + (i * 4) #Offset of current 256x256 sector data
@@ -106,7 +113,6 @@ class MapInfo(object):
                 self.sectorArea.append(byte_data[tileOffs+1] & 0b00111111)
                 self.sectorTileset1.append(byte_data[tileOffs+2] & 0b00111111)
                 self.sectorTileset2.append(byte_data[tileOffs+3] & 0b00111111)
-            curBank += 1
 
         #Lower 6 bits of 3000-37FF
         self.graphics16 = []
@@ -116,7 +122,7 @@ class MapInfo(object):
         for offset in banks16:
             for i in range(0x200):
                 tileset = (curBank * 4) + (i // 0x80) #4 tilesets for each bank
-                tileset *= 64
+                tileset *= 0x40
                 tileOffs = offset + (i * 4) #Offset of current 16x16 tile data
                 self.graphics16.append([
                     tileset + (  byte_data[tileOffs] & 0b00111111),
@@ -180,7 +186,6 @@ class MapInfo(object):
         out_bytes = bytearray(0x1e000)
 
         banksMap = [0x2000, 0x6000, 0xA000, 0xE000, 0x12000, 0x16000, 0x1A000]
-        curBank = 0
         array_i = 0
         for offset in banksMap:
             for i in range(0x2000):
@@ -192,11 +197,8 @@ class MapInfo(object):
 
                 array_i += 1
 
-            curBank += 1
-
         #Lower 6 bits of 3800-3FFF (skip 1st bank)
         banksSector = [0x5800, 0x9800, 0xD800, 0x11800, 0x15800, 0x19800, 0x1D800]
-        curBank = 0
         array_i = 0
         for offset in banksSector:
             for i in range(0x200):
@@ -211,7 +213,6 @@ class MapInfo(object):
                 for i in range(len(bytees)):
                     out_bytes[tileOffs+i] |= bytees[i]
                 array_i += 1
-            curBank += 1
 
         #Lower 6 bits of 3000-37FF
         banks16 = [0x1000, 0x5000, 0x9000, 0xD000, 0x11000, 0x15000, 0x19000, 0x1D000]
@@ -221,7 +222,7 @@ class MapInfo(object):
         for offset in banks16:
             for i in range(0x200):
                 tileset = (curBank * 4) + (i // 0x80) #4 tilesets for each bank
-                tileset *= 64
+                tileset *= 0x40
                 tileOffs = offset + (i * 4) #Offset of current 16x16 tile data
 
                 tile1 = self.graphics16[array_i][0]-tileset
@@ -272,17 +273,31 @@ class MapInfo(object):
 
 Map_Stuff : MapInfo = None
 
-palette_data = open("split/map_palettes.bin", "rb").read()
-
+palette_data = bytearray()
+map_palette_metadata = []
 palettes = []
-for i in range(len(palette_data)//4):
-    #this absolutely needs more work
-    #fucks up some colors makes some good
-    data = palette_data[i*4:(i+1)*4]
-    data2 = data[2] & 0b00111111
-    if (data[2] & 0b11000000 > 0):
-        data2 = 0x30
-    palettes.append([15, data[1], data2, data[3]])
+
+def load_palette_data(path):
+    global palette_data
+    global map_palette_metadata
+    global palettes
+
+    palette_data = bytearray(open(path, "rb").read())
+    load_palette_from_binary(palette_data)
+
+def load_palette_from_binary(bin):
+    global map_palette_metadata
+    global palettes
+    map_palette_metadata = []
+    palettes = []
+    for i in range(len(bin)//4):
+        data = bin[i*4:(i+1)*4]
+        if i % 4 == 3:
+            map_palette_metadata.append([data[0], data[2]])
+            palettes.append([0xf, data[1], 0x30, data[3]])
+        else:
+            palettes.append([data[0], data[1], data[2], data[3]])
+load_palette_data("split/map_palettes.bin")
 
 NES_PALETTE = open("sheets/nes.pal", "rb").read()
 
@@ -302,22 +317,26 @@ for i in range(len(sprite_palette)):
         id = NES_PALETTE[id*3:(id+1)*3]
         sprite_palette[i][color] = (id[0], id[1], id[2])
 
-for i in range(len(palettes)):
-    for color in range(len(palettes[i])):
-        id = palettes[i][color]
-        id2 = NES_PALETTE[id*3:(id+1)*3]
-        palettes[i][color] = (id2[0], id2[1], id2[2])
-##
+def convert_palettes_to_rgb():
+    global palettes
+    global NES_PALETTE
+    for i in range(len(palettes)):
+        for color in range(len(palettes[i])):
+            id = palettes[i][color]
+            id2 = NES_PALETTE[id*3:(id+1)*3]
+            palettes[i][color] = (id2[0], id2[1], id2[2])
+convert_palettes_to_rgb()
 
-def palette_image(data, palette):
+def palette_image(data, palette, bands=3, width=8, height=8):
     lookup_table = np.array(palette, dtype=np.uint8)
     colored_image = lookup_table[data]
-    colored_image.shape = (8,8,3)
+    colored_image.shape = (width,height,bands)
     return colored_image
 
 template = None
 
 #chunk graphicsitem
+show_chunk_collision = False
 class Chunk(object):
     def __init__(self, id, x, y):
         self.visible = False
@@ -331,6 +350,7 @@ class Chunk(object):
         ##make_chunk
         global palettes
         global Map_Stuff
+        global map_tile_properties
 
         chunk_x = self.id % 0x100
         chunk_y = self.id // 0x100
@@ -340,7 +360,6 @@ class Chunk(object):
         sector_i = sector_x + (sector_y * 0x40)
 
         secondTileset = Map_Stuff.mapTileset[self.id]
-        curTile = None
 
         ts1 = Map_Stuff.sectorTileset1
         ts2 = Map_Stuff.sectorTileset2
@@ -361,8 +380,16 @@ class Chunk(object):
 
         pixels = {}
 
+        collision = []
+
         for tile16_i in range(len(curTile["curTiles"])):
             tile16 = deepcopy(Map_Stuff.graphics16[curTile["curTiles"][tile16_i]])
+
+            if tile16_i in curTile["altTileset"]:
+                collision.append(map_tile_properties[(ts2[sector_i] * 0x80) + tile16[4]])
+            else:
+                collision.append(map_tile_properties[(ts1[sector_i] * 0x80) + tile16[4]])
+
             x16 = tile16_i % 4
             y16 = tile16_i // 4
             for tile8_i in range(4):
@@ -393,6 +420,41 @@ class Chunk(object):
             s.append(np.hstack(x))
         newImage = Image.fromarray(np.vstack(s)).convert("RGBA")
 
+        global show_chunk_collision
+        if show_chunk_collision:
+            overlay = Image.new('RGBA', newImage.size, (0, 0, 0, 0))
+            draw_overlay = ImageDraw.Draw(overlay)
+            color = (255, 0, 0, 99)
+
+            for i in range(len(collision)):
+                data = collision[i]
+                x = (i % 4) * 16
+                y = (i // 4) * 16
+                if data != 0:
+                    r = None
+                    if data & 0b00010000: #full collision
+                        r = [(0, 0), (0, 16), (16, 16), (16, 0)]
+                        r = [(s[0]+x, s[1]+y) for s in r]
+                        draw_overlay.polygon(r, color, color)
+                    else:
+                        if data & 0b00001000: # top left on this tile is blocked
+                            r = [(0, 0), (0, 8), (8, 0)]
+                            r = [(s[0]+x, s[1]+y) for s in r]
+                            draw_overlay.polygon(r, color, color)
+                        if data & 0b00000100: # bottom left on this tile is blocked
+                            r = [(0, 16), (0, 8), (8, 16)]
+                            r = [(s[0]+x, s[1]+y) for s in r]
+                            draw_overlay.polygon(r, color, color)
+                        if data & 0b00000010: # bottom right on this tile is blocked
+                            r = [(16, 8), (8, 16), (16, 16)]
+                            r = [(s[0]+x, s[1]+y) for s in r]
+                            draw_overlay.polygon(r, color, color)
+                        if data & 0b00000001: # top right on this tile is blocked
+                            r = [(8, 0), (16, 0), (16, 8)]
+                            r = [(s[0]+x, s[1]+y) for s in r]
+                            draw_overlay.polygon(r, color, color)
+
+            newImage = Image.alpha_composite(newImage, overlay)
 
         self.pixmap.setPixmap(QPixmap.fromImage(ImageQt(newImage)))
         self.generated = True
@@ -558,10 +620,10 @@ class Scene(QGraphicsScene):
         self.selection = QGraphicsRectItem()
         self.selection.setZValue(1000)
         self.addItem(self.selection)
-        self.chunk_grid = GridItem(64, QColor(255, 0, 0), 1)
+        self.chunk_grid = GridItem(64, QColor(255, 0, 0), 0x100, 0xE0, 1)
         self.chunk_grid.setZValue(998)
         self.addItem(self.chunk_grid)
-        self.sector_grid = GridItem(64*4, QColor(100, 100, 100), 3)
+        self.sector_grid = GridItem(64*4, QColor(100, 100, 100), 0x100, 0xE0, 3)
         self.sector_grid.setZValue(999)
         self.addItem(self.sector_grid)
 
@@ -595,19 +657,22 @@ class Scene(QGraphicsScene):
 
     def change_selection(self, mode):
         if mode in [Toolbar.Select_mode.Chunks, Toolbar.Select_mode.Sectors]:
+            if self.window.current_position == None:
+                self.window.current_position = (0,0)
+
             if mode == Toolbar.Select_mode.Chunks:
                 self.selection.setRect(0, 0, 64, 64)
-
             else:
                 self.selection.setRect(0, 0, 64*4, 64*4)
-                self.selection.setX((self.selection.pos().x() // (64*4)) * (64*4))
-                self.selection.setY((self.selection.pos().y() // (64*4)) * (64*4))
+                self.window.current_position = ((self.window.current_position[0] // 4) * 4,
+                                                (self.window.current_position[1] // 4) * 4)
+                self.selection.setX(self.window.current_position[0])
+                self.selection.setY(self.window.current_position[1])
             pen = QPen()
             pen.setWidth(5)
             pen.setColor(QColor(255, 0, 0))
             self.selection.setPen(pen)
 
-            self.window.current_position = (int(self.selection.pos().x()), int(self.selection.pos().y()))
             self.window.update_selection()
         else:
             self.selection.setRect(0,0,0,0)
@@ -615,11 +680,11 @@ class Scene(QGraphicsScene):
 
 #grid handler
 class GridItem(QGraphicsItem):
-    def __init__(self, gridSize, color, width, parent=None):
+    def __init__(self, gridSize, color, x, y, width, parent=None):
         super().__init__(parent)
         self.gridSize = gridSize
-        self.width = 0x100*64
-        self.height = 0xE0*64
+        self.width = x*64
+        self.height = y*64
         self.pen = QPen(color) # Light gray grid
         self.pen.setWidth(width)
 
@@ -637,6 +702,7 @@ class GridItem(QGraphicsItem):
         for y in range(0, self.height, self.gridSize):
             painter.drawLine(0, y, self.width, y)
 
+chunk_app = None
 #scene viewer
 class Viewer(QGraphicsView):
     def __init__(self, parent):
@@ -669,9 +735,9 @@ class Viewer(QGraphicsView):
         position = self.mapToScene(position)
         x,y = int(position.x()), int(position.y())
         not_clicking = x < 0
-        not_clicking |= x > 0x100 * 64
+        not_clicking |= x >= 0x100 * 64
         not_clicking |= y < 0
-        not_clicking |= y > 0xE0 * 64
+        not_clicking |= y >= 0xE0 * 64
         if not_clicking:
             return
 
@@ -680,7 +746,7 @@ class Viewer(QGraphicsView):
 
     def update_selection(self):
         x,y = self.current_position
-        global palettes, Map_Stuff
+        global palettes, Map_Stuff, Map_Toolbar
 
         chunk_x, chunk_y = x, y
         chunk_i = chunk_x + (chunk_y * 0x100)
@@ -699,17 +765,65 @@ class Viewer(QGraphicsView):
 
         area = Map_Stuff.sectorArea[sector_i]
 
-        if self._main.toolbar.select_mode in [Toolbar.Select_mode.Chunks, Toolbar.Select_mode.Sectors]:
-            self._main.toolbar.palette.valueBox.setValue(palette_i)
-            self._main.toolbar.tileset.valueBox.setValue(tileset)
-            self._main.toolbar.tileset_2.valueBox.setValue(tileset2)
+        if Map_Toolbar.select_mode in [Toolbar.Select_mode.Chunks, Toolbar.Select_mode.Sectors]:
+            Map_Toolbar.palette.valueBox.setValue(palette_i)
+            Map_Toolbar.tileset.valueBox.setValue(tileset)
+            Map_Toolbar.tileset_2.valueBox.setValue(tileset2)
 
-            if self._main.toolbar.select_mode == Toolbar.Select_mode.Chunks:
-                self._main.toolbar.use_tileset.valueBox.setValue(secondTileset)
+            if Map_Toolbar.select_mode == Toolbar.Select_mode.Chunks:
+                Map_Toolbar.use_tileset.valueBox.setValue(secondTileset)
                 self._scene.selection.setPos(chunk_x*64,chunk_y*64)
             else:
-                self._main.toolbar.area.valueBox.setValue(area)
+                Map_Toolbar.area.valueBox.setValue(area)
                 self._scene.selection.setPos(sector_x*4*64,sector_y*4*64)
+        self._scene.update() #required so there isnt artifacting
+
+    def open_selection(self):
+        x,y = self.current_position
+        global palettes, Map_Stuff, Map_Toolbar
+
+        chunk_x, chunk_y = x, y
+        chunk_i = chunk_x + (chunk_y * 0x100)
+        sector_x, sector_y = chunk_x // 4, chunk_y // 4
+        sector_i = sector_x + (sector_y * 0x40)
+
+        palette_i = Map_Stuff.sectorPalette[sector_i]
+
+        secondTileset = True if Map_Stuff.mapTileset[chunk_i] else False
+
+        ts1 = Map_Stuff.sectorTileset1
+        ts2 = Map_Stuff.sectorTileset2
+
+        tileset = ts1[sector_i]
+        tileset2 = ts2[sector_i]
+
+        global chunk_app
+        from ChunkEditor import CE_Window
+        if chunk_app is None: # Prevent multiple instances if desired
+            chunk_app = CE_Window(Map_Stuff)
+
+        from ChunkEditor import set_overrides, set_use_tileset_override, set_chunki, recieve_loads
+        set_overrides(tileset, tileset2, palette_i)
+        set_use_tileset_override(secondTileset)
+        set_chunki(Map_Stuff.mapTiles[chunk_i])
+        global map_tile_properties, palette_data
+        recieve_loads(map_tile_properties, palette_data)
+        chunk_app.show()
+
+    def place_selection(self):
+        x,y = self.current_position
+        global palettes, Map_Stuff, Map_Toolbar, chunk_app
+        if chunk_app == None:
+            return
+
+        chunk_x, chunk_y = x, y
+        chunk_i = chunk_x + (chunk_y * 0x100)
+        sector_x, sector_y = chunk_x // 4, chunk_y // 4
+        sector_i = sector_x + (sector_y * 0x40)
+
+        from ChunkEditor import get_chunki
+        Map_Stuff.mapTiles[chunk_i] = get_chunki()
+        self._scene.chunks[chunk_i].generated = False
         self._scene.update() #required so there isnt artifacting
 
 
@@ -717,10 +831,17 @@ class Viewer(QGraphicsView):
         super().mouseMoveEvent(a0)
         if a0.buttons() & Qt.MouseButton.LeftButton:
             self.move_selection(a0, False)
+            self.place_selection()
 
     def mousePressEvent(self, a0):
         super().mousePressEvent(a0)
         self.move_selection(a0, False)
+        if Map_Toolbar.select_mode == Toolbar.Select_mode.Chunks:
+            if a0.buttons() & Qt.MouseButton.RightButton:
+                self.open_selection()
+            elif a0.buttons() & Qt.MouseButton.LeftButton:
+                self.place_selection()
+
 
     def mouseReleaseEvent(self, a0):
         super().mouseReleaseEvent(a0)
@@ -780,6 +901,9 @@ class Toolbar(QVBoxLayout):
         sector_grid = QPushButton("Sector Grid")
         sector_grid.clicked.connect(lambda: self.toggle_grid(0))
         grid_views.addWidget(sector_grid)
+        collision_view = QPushButton("Collision")
+        collision_view.clicked.connect(self.toggle_collision)
+        grid_views.addWidget(collision_view)
         options.addLayout(grid_views)
 
 
@@ -790,16 +914,20 @@ class Toolbar(QVBoxLayout):
         self.palette.valueBox.valueChanged.connect(self.palette_changed)
         info.addLayout(self.palette)
 
-        self.tileset = ValueBox("Tileset: ", (0, 0x40-1), True)
+        self.tileset = ValueBox("Tileset: ", (0, 0x20-1), True)
+        self.tileset.valueBox.valueChanged.connect(self.tileset_changed)
         info.addLayout(self.tileset)
 
-        self.tileset_2 = ValueBox("Tileset_2: ", (0, 0x40-1), True)
+        self.tileset_2 = ValueBox("Tileset 2: ", (0, 0x20-1), True)
+        self.tileset_2.valueBox.valueChanged.connect(self.tileset_2_changed)
         info.addLayout(self.tileset_2)
 
         self.use_tileset = ValueBox("Use Tileset: ", (1, 2), True)
+        self.use_tileset.valueBox.valueChanged.connect(self.use_tileset_changed)
         info.addLayout(self.use_tileset)
 
         self.area = ValueBox("Area: ", (0, 0x40-1), True)
+        self.area.valueBox.valueChanged.connect(self.area_changed)
         info.addLayout(self.area)
 
         self.addLayout(info)
@@ -807,8 +935,8 @@ class Toolbar(QVBoxLayout):
         self.set_select_mode(self.select_mode)
 
     def palette_changed(self, value):
-
-        pos = self._main.viewer.current_position
+        global Map_Viewer
+        pos = Map_Viewer.current_position
         if not pos:
             return
 
@@ -825,7 +953,7 @@ class Toolbar(QVBoxLayout):
         Map_Stuff.sectorPalette[sector_i] = value
 
         affected_chunks = []
-        chunks = self._main.viewer._scene.chunks
+        chunks = Map_Viewer._scene.chunks
         chunk_x2, chunk_y2 = (sector_x+1) * 4, (sector_y+1) * 4
         chunk_x3, chunk_y3 = (sector_x) * 4, (sector_y) * 4
         for c_y in range(chunk_y3, chunk_y2):
@@ -835,23 +963,407 @@ class Toolbar(QVBoxLayout):
         for chunk in affected_chunks:
             chunk.generate_pixmap()
 
+        global chunk_app
+        from ChunkEditor import set_overrides
+        if not chunk_app is None: # Prevent multiple instances if desired
+            set_overrides(Map_Stuff.sectorTileset1[sector_i], Map_Stuff.sectorTileset2[sector_i], Map_Stuff.sectorPalette[sector_i])
+
+    def tileset_changed(self, value):
+        global Map_Viewer
+        pos = Map_Viewer.current_position
+        if not pos:
+            return
+
+        x, y = pos
+
+        global Map_Stuff
+        chunk_x, chunk_y = x, y
+        chunk_i = chunk_x + (chunk_y * 0x100)
+        sector_x, sector_y = chunk_x // 4, chunk_y // 4
+        sector_i = sector_x + (sector_y * 0x40)
+
+        if value == Map_Stuff.sectorTileset1[sector_i]:
+            return
+        Map_Stuff.sectorTileset1[sector_i] = value
+
+        affected_chunks = []
+        chunks = Map_Viewer._scene.chunks
+        chunk_x2, chunk_y2 = (sector_x+1) * 4, (sector_y+1) * 4
+        chunk_x3, chunk_y3 = (sector_x) * 4, (sector_y) * 4
+        for c_y in range(chunk_y3, chunk_y2):
+            for c_x in range(chunk_x3, chunk_x2):
+                affected_chunks.append(chunks[c_x + (c_y * 0x100)])
+
+        for chunk in affected_chunks:
+            chunk.generate_pixmap()
+
+        global chunk_app
+        from ChunkEditor import set_overrides
+        if not chunk_app is None: # Prevent multiple instances if desired
+            set_overrides(Map_Stuff.sectorTileset1[sector_i], Map_Stuff.sectorTileset2[sector_i], Map_Stuff.sectorPalette[sector_i])
+
+
+    def tileset_2_changed(self, value):
+        global Map_Viewer
+        pos = Map_Viewer.current_position
+        if not pos:
+            return
+
+        x, y = pos
+
+        global Map_Stuff
+        chunk_x, chunk_y = x, y
+        chunk_i = chunk_x + (chunk_y * 0x100)
+        sector_x, sector_y = chunk_x // 4, chunk_y // 4
+        sector_i = sector_x + (sector_y * 0x40)
+
+        if value == Map_Stuff.sectorTileset2[sector_i]:
+            return
+        Map_Stuff.sectorTileset2[sector_i] = value
+
+        affected_chunks = []
+        chunks = Map_Viewer._scene.chunks
+        chunk_x2, chunk_y2 = (sector_x+1) * 4, (sector_y+1) * 4
+        chunk_x3, chunk_y3 = (sector_x) * 4, (sector_y) * 4
+        for c_y in range(chunk_y3, chunk_y2):
+            for c_x in range(chunk_x3, chunk_x2):
+                affected_chunks.append(chunks[c_x + (c_y * 0x100)])
+
+        for chunk in affected_chunks:
+            chunk.generate_pixmap()
+
+        global chunk_app
+        from ChunkEditor import set_overrides
+        if not chunk_app is None: # Prevent multiple instances if desired
+            set_overrides(Map_Stuff.sectorTileset1[sector_i], Map_Stuff.sectorTileset2[sector_i], Map_Stuff.sectorPalette[sector_i])
+
+    def use_tileset_changed(self, value):
+        global Map_Viewer
+        pos = Map_Viewer.current_position
+        if not pos:
+            return
+
+        x, y = pos
+
+        global Map_Stuff
+        chunk_x, chunk_y = x, y
+        chunk_i = chunk_x + (chunk_y * 0x100)
+
+        if value == (2 if Map_Stuff.mapTileset[chunk_i] else 1):
+            return
+        Map_Stuff.mapTileset[chunk_i] = (True if value == 2 else False)
+
+        chunks = Map_Viewer._scene.chunks[chunk_i]
+        chunks.generate_pixmap()
+
+        global chunk_app
+        from ChunkEditor import set_use_tileset_override
+        if not chunk_app is None: # Prevent multiple instances if desired
+            set_use_tileset_override(Map_Stuff.mapTileset[chunk_i])
+
+    #doesnt really do anything visually. yet
+    def area_changed(self, value):
+        global Map_Viewer
+        pos = Map_Viewer.current_position
+        if not pos:
+            return
+        x, y = pos
+
+        global Map_Stuff
+        sector_x, sector_y = x // 4, y // 4
+        sector_i = sector_x + (sector_y * 0x40)
+
+        if value == Map_Stuff.sectorArea[sector_i]:
+            return
+        Map_Stuff.sectorArea[sector_i] = value
+
     def toggle_grid(self, i):
-        sector_grid = self._main.viewer._scene.sector_grid
-        chunk_grid = self._main.viewer._scene.chunk_grid
+        global Map_Viewer
+        sector_grid = Map_Viewer._scene.sector_grid
+        chunk_grid = Map_Viewer._scene.chunk_grid
         if i == 0:
             sector_grid.setVisible(not sector_grid.isVisible())
         elif i == 1:
             chunk_grid.setVisible(not chunk_grid.isVisible())
 
+    def toggle_collision(self):
+        global show_chunk_collision, Map_Viewer
+        show_chunk_collision = not show_chunk_collision
+        for chunk in Map_Viewer._scene.chunks:
+            chunk.generated = False
+
     def set_select_mode(self, mode):
+        global Map_Viewer
         self.select_mode = mode
-        self._main.viewer._scene.change_selection(mode)
+        Map_Viewer._scene.change_selection(mode)
         if self.select_mode == Toolbar.Select_mode.Chunks:
             self.use_tileset.show()
             self.area.hide()
         else:
             self.use_tileset.hide()
             self.area.show()
+
+class NESPaletteSelector(QWidget):
+    colorSelected = pyqtSignal(QColor, int)
+    def __init__(self):
+        super().__init__()
+        self.colors_per_row = 16
+
+        self.layout = QGridLayout()
+        self.layout.setSpacing(0)
+        self.setLayout(self.layout)
+
+        # Example colors (you can expand this)
+        self.colors = []
+
+        global NES_PALETTE
+        for id in range(len(NES_PALETTE)//3):
+            id = NES_PALETTE[id*3:(id+1)*3]
+            self.colors.append(QColor(id[0], id[1], id[2]))
+
+        row = 0
+        col = 0
+        i = 0
+        for color in self.colors:
+            btn = QPushButton(hex(i))
+            btn.setFixedSize(30, 30) # Set fixed size for the color swatch
+            PaletteEditor.set_color(None, btn, color) #adjust text based on luminance
+            btn.clicked.connect(lambda checked, c=color, id=i: self.colorSelected.emit(c, id))
+            self.layout.addWidget(btn, row, col)
+
+            col += 1
+            if col >= self.colors_per_row:
+                col = 0
+                row += 1
+            i += 1
+
+class PaletteEditor(QMainWindow):
+    def __init__(self, parent):
+        super().__init__()
+
+        self.pseudo_parent = parent
+
+        self.setWindowTitle("Palette Editor")
+        self.setGeometry(100, 100, 400, 300)
+
+        window_widget = QWidget()
+
+        lister = QVBoxLayout()
+        lister.setAlignment(Qt.AlignmentFlag.AlignTop)
+        window_widget.setLayout(lister)
+
+        self.reload_button = QPushButton("Reset")
+        self.reload_button.clicked.connect(self.reload)
+        lister.addWidget(self.reload_button)
+
+        self.palette_num = QSpinBox()
+        self.palette_num.setDisplayIntegerBase(16)
+        self.palette_num.setRange(0, 0x20-1)
+        self.palette_num.valueChanged.connect(self.change_palette_num)
+        lister.addWidget(self.palette_num)
+        self.c_palette = -1
+
+        self.color_widgets = []
+
+        for i in range(4):
+            reset = QHBoxLayout()
+            for c in range(4):
+                color = QPushButton()
+                if not (i*4)+c in [12, 14]:
+                    color.clicked.connect(lambda boolstore, btn=color: self.open_color(btn))
+                reset.addWidget(color)
+                self.color_widgets.append(color)
+            lister.addLayout(reset)
+
+        metadata = QHBoxLayout()
+        self.unk_value = ValueBox("???: ", (0, 0xff), True)
+        self.unk_value.valueBox.valueChanged.connect(self.unk_value_changed)
+        self.null_chunk = ValueBox("Null Chunk: ", (0, 0xff), True)
+        self.null_chunk.valueBox.valueChanged.connect(self.null_chunk_changed)
+        metadata.addLayout(self.unk_value)
+        metadata.addLayout(self.null_chunk)
+        lister.addLayout(metadata)
+
+        self.setCentralWidget(window_widget)
+
+        self.change_palette_num(0)
+
+        self.color_selector = None
+
+    def reload(self):
+        load_palette_data("split/map_palettes.bin")
+        convert_palettes_to_rgb()
+
+        #reload palette data
+        okay_man = self.c_palette
+        self.c_palette = -1
+        self.change_palette_num(okay_man)
+
+        #update rendered chunks
+        global Map_Stuff, Map_Viewer
+        if Map_Stuff != None:
+            for chunk in Map_Viewer._scene.chunks:
+                chunk.generated = False
+
+    def set_color(self, widget, color:QColor):
+        #luminance shit
+        highest = 0
+        use_fontcolor = "white"
+        if color.red() > highest:
+            highest = color.red()
+        if color.blue() > highest:
+            highest = color.blue()
+        if color.green() > highest:
+            highest = color.green()
+
+        if highest > 0x80:
+            use_fontcolor = "black"
+
+        widget.setStyleSheet(f"""
+        QPushButton {{
+        background-color: {color.name()};
+        color: {use_fontcolor};
+        }}
+        """)
+
+    def get_color(self, widget):
+        return widget.styleSheet().split("-color: #")[-1].split(";")[0]
+
+    def open_color(self, widget):
+        if self.color_selector == None:
+            self.color_selector = QMainWindow()
+            self.color_selector.setWindowTitle("NES Palette Picker")
+        s = self.color_selector.centralWidget()
+        if s == None:
+            s = NESPaletteSelector()
+            self.color_selector.setCentralWidget(s)
+            s.colorSelected.connect(self.recieveColor)
+        s.widget = widget
+        self.color_selector.show()
+
+    #changes the swatch
+    def recieveColor(self, color, id):
+        widget = self.color_selector.centralWidget().widget
+        self.color_selector.close()
+        self.set_color(widget, color)
+        i = self.color_widgets.index(widget)
+        global palettes, palette_data
+        palettes[(self.c_palette*4)+i//4][i%4] = (color.red(), color.green(), color.blue())
+        palette_data[(self.c_palette*16)+i] = id
+
+        okay_man = self.c_palette
+        self.c_palette = -1
+        self.change_palette_num(okay_man)
+
+        global Map_Stuff, Map_Viewer
+        if Map_Stuff != None:
+            for sector_y in range(0xE0//4):
+                for sector_x in range(0x100//4):
+                    sector_i = sector_x + (sector_y * 0x40)
+
+                    if self.c_palette != Map_Stuff.sectorPalette[sector_i]:
+                        continue
+
+                    affected_chunks = []
+                    chunks = Map_Viewer._scene.chunks
+                    chunk_x2, chunk_y2 = (sector_x+1) * 4, (sector_y+1) * 4
+                    chunk_x3, chunk_y3 = (sector_x) * 4, (sector_y) * 4
+                    for c_y in range(chunk_y3, chunk_y2):
+                        for c_x in range(chunk_x3, chunk_x2):
+                            affected_chunks.append(chunks[c_x + (c_y * 0x100)])
+
+                    for chunk in affected_chunks:
+                        if chunk.generated:
+                            chunk.generate_pixmap()
+
+        global chunk_app
+        if chunk_app == None:
+            return
+
+        from ChunkEditor import recieve_loads
+        global map_tile_properties
+        recieve_loads(map_tile_properties, palette_data)
+
+    def unk_value_changed(self, value):
+        global map_palette_metadata, palette_data
+        map_palette_metadata[self.c_palette][0] = value #abstracted
+        palette_data[(self.c_palette*(4*4))+(3*4)+0] = value #binary
+        self.color_widgets[12].setText("0xf ("+(hex(value))+")")
+    def null_chunk_changed(self, value):
+        global map_palette_metadata, palette_data
+        map_palette_metadata[self.c_palette][1] = value #abstracted
+        palette_data[(self.c_palette*(4*4))+(3*4)+2] = value #binary
+        self.color_widgets[14].setText("0x30 ("+(hex(value))+")")
+    def change_palette_num(self, value):
+        global palettes
+        global map_palette_metadata
+        global NES_PALETTE
+
+        if value == self.c_palette:
+            return
+        self.c_palette = value
+
+        i = 0
+        pi = (value * 16)
+        while i < 16:
+            widget : QPushButton = self.color_widgets[i]
+            color = palettes[pi//4][i%4]
+            color = QColor(color[0], color[1], color[2])
+            self.set_color(widget, color)
+
+            #overrides
+            if i == 12:
+                widget.setText("0xf ("+(hex(palette_data[pi]))+")")
+            elif i == 14:
+                widget.setText("0x30 ("+(hex(palette_data[pi]))+")")
+            else:
+                widget.setText(hex(palette_data[pi]))
+
+            i += 1
+            pi += 1
+
+        metadata = map_palette_metadata[value]
+        self.unk_value.valueBox.setValue(metadata[0])
+        self.null_chunk.valueBox.setValue(metadata[1])
+
+
+
+class ThemeWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Theme")
+        self.setGeometry(100, 100, 400, 300)
+
+        window_widget = QWidget()
+
+        lister = QVBoxLayout()
+        lister.setAlignment(Qt.AlignmentFlag.AlignTop)
+        window_widget.setLayout(lister)
+
+        # Add widgets to this new window as needed
+        reset = QPushButton("Reset")
+        reset.clicked.connect(self.reset)
+        lister.addWidget(reset)
+
+        # Add widgets to this new window as needed
+        mother = QPushButton("Oppa Mother Style")
+        mother.clicked.connect(self.mother_default)
+        lister.addWidget(mother)
+
+        self.setCentralWidget(window_widget)
+
+    def mother_default(self):
+        global app
+        app.setStyleSheet(open("OppaMotherStyle.css", "r").read())
+
+    def reset(self):
+        global app
+        app.setStyleSheet("""
+                    QWidget {
+                        font-family: "Arial";
+                        font-size: 12px;
+                    }
+                    """)
 
 class Window(QMainWindow):
     def __init__(self):
@@ -870,14 +1382,42 @@ class Window(QMainWindow):
         self.write_file.setDisabled(True)
         toolbar.addAction(self.write_file)
 
+        self.theme_changer = QAction("Theme", self)
+        self.theme_changer.triggered.connect(self.change_theme)
+        toolbar.addAction(self.theme_changer)
+
+        self.palette_changer = QAction("Palettes", self)
+        self.palette_changer.triggered.connect(self.change_palette)
+        toolbar.addAction(self.palette_changer)
+
         self.setCentralWidget(ActualWindow())
 
-    #TODO: make yaml in yaml out
     def open_file(self):
+        msgBox = QMessageBox()
+
         file_dialog = QFileDialog()
-        file_path = file_dialog.getOpenFileName(self, "Select File", "", "Binary Files (*.bin);;Yaml Files (*.yaml)")[0]
+        file_path = file_dialog.getOpenFileName(self, "Select Map", "", "Binary Files (*.bin);;Yaml Files (*.yaml)")[0]
+
+        mtp_path = "" # map_tile_properties
+        palettes_path = "" #map_palettes
         if not file_path:
-            return
+            file_path = "split/map.bin"
+            mtp_path = "split/map_tile_properties.bin"
+            palettes_path = "split/map_palettes.bin"
+        else:
+            mtp_path = file_dialog.getOpenFileName(self, "Select Collision", "", "Binary Files (*.bin);;Yaml Files (*.yaml)")[0]
+            if not mtp_path:
+                msgBox.setWindowTitle("DUDE")
+                msgBox.setText("If you're gonna specify a custom map, please specify other custom files!")
+                msgBox.exec()
+                return
+            palettes_path = file_dialog.getOpenFileName(self, "Select Palettes", "", "Binary Files (*.bin);;Yaml Files (*.yaml)")[0]
+            if not palettes_path:
+                msgBox.setWindowTitle("DUDE")
+                msgBox.setText("If you're gonna specify a custom map, please specify other custom files!")
+                msgBox.exec()
+                return
+
 
         global Map_Stuff
         if Map_Stuff == None:
@@ -887,19 +1427,43 @@ class Window(QMainWindow):
         elif file_path.endswith(".yaml"):
             Map_Stuff.in_yaml(file_path)
 
+        global map_tile_properties
+        map_tile_properties = bytearray(open(mtp_path, "rb").read())
+
+
+        load_palette_data(palettes_path)
+        convert_palettes_to_rgb()
+
         self.write_file.setDisabled(False)
 
-        msgBox = QMessageBox()
         msgBox.setWindowTitle("INFO")
-        msgBox.setText("File Loaded.")
+        msgBox.setText("Files Loaded.")
         msgBox.exec()
 
 
     def save_file(self):
         file_dialog = QFileDialog()
-        file_path = file_dialog.getSaveFileName(self, "Select File", "", "Binary Files (*.bin);;Yaml Files (*.yaml)")[0]
+        file_path = file_dialog.getSaveFileName(self, "Select Map", "", "Binary Files (*.bin);;Yaml Files (*.yaml)")[0]
+
+        mtp_path = "" # map_tile_properties
+        palettes_path = "" #map_palettes
         if not file_path:
-            return
+            file_path = "recompile/map.bin"
+            mtp_path = "recompile/map_tile_properties.bin"
+            palettes_path = "recompile/map_palettes.bin"
+        else:
+            mtp_path = file_dialog.getSaveFileName(self, "Select Collision", "", "Binary Files (*.bin);;Yaml Files (*.yaml)")[0]
+            if not mtp_path:
+                msgBox.setWindowTitle("DUDE")
+                msgBox.setText("If you're gonna specify a custom map, please specify other custom files!")
+                msgBox.exec()
+                return
+            palettes_path = file_dialog.getSaveFileName(self, "Select Palettes", "", "Binary Files (*.bin);;Yaml Files (*.yaml)")[0]
+            if not palettes_path:
+                msgBox.setWindowTitle("DUDE")
+                msgBox.setText("If you're gonna specify a custom map, please specify other custom files!")
+                msgBox.exec()
+                return
 
         global Map_Stuff
         if file_path.endswith(".bin"):
@@ -907,23 +1471,53 @@ class Window(QMainWindow):
         elif file_path.endswith(".yaml"):
             open(file_path, "w").writelines(Map_Stuff.out_yaml())
 
+        global palette_data
+        open(palettes_path, "wb").write(palette_data)
+
+        global map_tile_properties
+        open(mtp_path, "wb").write(map_tile_properties)
+
         msgBox = QMessageBox()
         msgBox.setWindowTitle("INFO")
-        msgBox.setText("File Saved.")
+        msgBox.setText("Files Saved.")
         msgBox.exec()
+
+    def change_theme(self):
+        global Theme_Window
+        if Theme_Window is None: # Prevent multiple instances if desired
+            Theme_Window = ThemeWindow()
+        Theme_Window.show()
+
+    def change_palette(self):
+        global Palette_Editor
+        if Palette_Editor is None: # Prevent multiple instances if desired
+            Palette_Editor = PaletteEditor(self)
+        Palette_Editor.show()
+
+Map_Viewer : Viewer = None
+Map_Toolbar : Toolbar = None
+
+Palette_Editor : PaletteEditor = None
+Theme_Window : ThemeWindow = None
 
 class ActualWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.viewer = Viewer(self)
+
+        global Map_Viewer, Map_Toolbar
+
         vbox = QVBoxLayout()
-        self.toolbar = Toolbar(self)
-        vbox.addLayout(self.toolbar)
-        vbox.addWidget(self.viewer, stretch=1)
+        Map_Viewer = Viewer(self)
+        Map_Toolbar = Toolbar(self)
+        vbox.addLayout(Map_Toolbar)
+        vbox.addWidget(Map_Viewer, stretch=1)
         self.setLayout(vbox)
 
+app = None
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    QFontDatabase.addApplicationFont("earthbound-beginnings.ttf")
+
     template = QPixmap.fromImage(ImageQt(Image.new("RGBA", (1,1))))
     window = Window()
     window.show()

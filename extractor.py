@@ -644,7 +644,8 @@ class BattleIO(object):
         while i < 8:
             enemy_bank = mem_data["splits"]["prg"][0x16]
             enemy_id = input[i]
-            enemy_label = input[i+1]
+            enemy_label = input[i+1] & 0b01111111
+            called = (input[i+1] & 0b10000000) != 0
             file = ""
             if enemy_id != 0xFF:
                 entry = enemy_bank["splits"][enemy_id]
@@ -654,7 +655,7 @@ class BattleIO(object):
                     file = '0x{:01X}'.format(enemy_id)
             else:
                 file = "NONE"
-            enemies.append({"enemy": file, "label": enemy_label})
+            enemies.append({"enemy": file, "label": enemy_label, "called": called})
             i += 2
 
         position = input[8] & 0b00011111
@@ -681,7 +682,7 @@ class BattleIO(object):
         enemies = data_loaded["enemies"]
         for enemy in enemies:
             enemy_file = enemy["enemy"]
-            enemy_label = enemy["label"]
+            enemy_label = enemy["label"] | (int(enemy["called"]) << 7)
             enemy_bank = mem_data["splits"]["prg"][0x16]
             enemy_id = -1
             if enemy_file != "NONE":
@@ -808,14 +809,6 @@ class SpriteDefinitionIO(object):
 
 
 class MapIO(object):
-
-    color_map = {
-        (0,0,0,255): 0,
-        (102,102,102,255): 1,
-        (173,173,173,255): 2,
-        (255,254,255,255): 3,
-    }
-
     def decompile(byte_data):
         #Map height * width in terms of 64x64 chunks
         mapTiles = []
@@ -1037,6 +1030,124 @@ class MapIO(object):
 
         return out_bytes
 
+class BattleTilesPointersIO(object):
+    def decompile(bytes):
+        #TODO: THIS REQUIRES LINKING!!!
+        byte_data = bytes
+        pointers : list[int] = []
+        i = 0
+        while i < len(byte_data):
+            pointers.append(int.from_bytes(byte_data[i:i+2], "little"))
+            i += 2
+        battletiles_bank = mem_data["splits"]["prg"][0x16]
+        pointer_files = []
+        for i in range(len(pointers)):
+            use_name = ""
+            if pointers[i] == 0:
+                use_name = '0x{:04X}'.format(0)
+            else:
+                for split in battletiles_bank["splits"]:
+                    if len(split) > 1:
+                        if split[0] == pointers[i]-battletiles_bank["mem"]:
+                            use_name = split[1]
+                            break
+                if use_name == "":
+                    use_name = '0x{:04X}'.format(pointers[i])
+            pointer_files.append(use_name+"\n")
+        return pointer_files
+    def compile(stream):
+        lines = stream.readlines()
+        out_bytes = bytearray()
+        #TODO: THIS REQUIRES LINKING!!!
+        #this is a temporary bytematching solution, but the addresses would be retrived by:
+        #1. compile each page
+        #2. get position in page
+        #3. get page mem
+        #4. add
+        #this currently does everything but 1. fix that!!!
+        battletiles_bank = mem_data["splits"]["prg"][0x16]
+        for line in lines:
+            if line.startswith("0x"):
+                out_bytes += int.to_bytes(int(line.strip(), 16), 2, "little")
+                continue
+            for split in battletiles_bank["splits"]:
+                if len(split) < 1:
+                    continue
+                if split[1] == line.strip():
+                    mem = battletiles_bank["mem"] + split[0]
+                    break
+            out_bytes += int.to_bytes(mem, 2, "little")
+        return out_bytes
+
+class BattleTilesIO(object):
+    def decompile(bytes):
+        lines = []
+
+        height = bytes[0]
+        width = bytes[1]
+        ypos = bytes[2]
+        tiles = [byte for byte in bytes[3:]]
+
+        dict = {
+        "height": height,
+        "width": width,
+        "ypos": ypos,
+        "tiles": tiles,
+        }
+
+        lines = yaml.dump(dict, sort_keys=False, default_flow_style=True)
+        return lines
+    def compile(stream):
+        data_loaded = yaml.safe_load(stream)
+        out_bytes = bytearray([data_loaded["height"], data_loaded["width"], data_loaded["ypos"]])
+        out_bytes += bytearray(data_loaded["tiles"])
+        return out_bytes
+
+
+class BattleExtraTilesIO(object):
+    def decompile(bytes):
+        #TODO: THIS REQUIRES LINKING!!!
+        unk = bytes[0]
+        pointer = int.from_bytes(bytes[1:], "little")
+
+        battletiles_bank = mem_data["splits"]["prg"][0x15] #sprites
+        use_name = ""
+        if pointer == 0:
+            use_name = '0x{:04X}'.format(0)
+        else:
+            for split in battletiles_bank["splits"]:
+                if len(split) > 1:
+                    if split[0] == pointer-battletiles_bank["mem"]:
+                        use_name = split[1]
+                        break
+            if use_name == "":
+                use_name = '0x{:04X}'.format(pointer)
+        return [f"{unk}\n{use_name}"]
+    def compile(stream):
+        lines = stream.readlines()
+        out_bytes = bytearray([int(lines[0])])
+        #TODO: THIS REQUIRES LINKING!!!
+        #this is a temporary bytematching solution, but the addresses would be retrived by:
+        #1. compile each page
+        #2. get position in page
+        #3. get page mem
+        #4. add
+        #this currently does everything but 1. fix that!!!
+        sprite_bank = mem_data["splits"]["prg"][0x15]
+        mem = sprite_bank["mem"]
+        line = lines[1].strip()
+        if line.startswith("0x"):
+            out_bytes += int.to_bytes(int(line, 16), 2, "little")
+            return out_bytes
+        for split in sprite_bank["splits"]:
+            if len(split) < 1:
+                continue
+            if split[1] == line:
+                mem += split[0]
+                break
+        out_bytes += int.to_bytes(mem, 2, "little")
+        return out_bytes
+
 class Extractor(object):
     def Extract():
         yamlSplit.doSplit("split")
@@ -1064,9 +1175,11 @@ class Extractor(object):
         sheets.SheetIO.Extract()
 
     def Recompile():
-        if os.path.exists("recompile/"):
-            shutil.rmtree("recompile/")
-        os.makedirs("recompile/")
+        global no_delete
+        if not no_delete:
+            if os.path.exists("recompile/"):
+                shutil.rmtree("recompile/")
+            os.makedirs("recompile/")
 
         data_loaded = yaml.safe_load(open("extract.yaml", "r"))
 
@@ -1104,7 +1217,7 @@ class Extractor(object):
                 return output_results[0]
             else:
                 use_thing = recomp_results[0]
-                if not os.path.exists(use_thing):
+                if not (os.path.exists(use_thing) and os.path.isfile(use_thing)):
                     #do
                     out_file = use_thing
                     in_file = recompilableFiles[out_file]["in_file"]
@@ -1119,7 +1232,7 @@ class Extractor(object):
                     del recompilableFiles[out_file]
 
                     return out_file
-                elif type(use_thing) == str:
+                elif type(use_thing) is str:
                     return use_thing.replace("\\", "/")
 
 
@@ -1181,11 +1294,21 @@ class Extractor(object):
             file.write(rom_output)
 
 
+no_delete = False
 if __name__ == "__main__":
     import argparse
+    sys.argv = ['extractor.py', 'r', "-n"]
     parser = argparse.ArgumentParser()
     parser.add_argument('mode', type=str)
+    parser.add_argument(
+        "-n",
+        "--no_delete",
+        help="Don't delete existing folders.",
+        action="store_true",
+    )
     args = parser.parse_args()
+
+    no_delete = args.no_delete
 
     if args.mode == "e":
         Extractor.Extract()

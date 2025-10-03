@@ -50,3 +50,16 @@ types:
   extension: .yaml
   class: MapIO
   recompile: yes
+
+- glob: [split/battle/enemy_tiles/pointers.bin]
+  extension: .txt
+  class: BattleTilesPointersIO
+  recompile: yes
+- glob: [split/battle/enemy_tiles/tile_*.bin]
+  extension: .yaml
+  class: BattleTilesIO
+  recompile: yes
+- glob: [split/battle/enemy_tiles/extra/*.bin]
+  extension: .txt
+  class: BattleExtraTilesIO
+  recompile: yes

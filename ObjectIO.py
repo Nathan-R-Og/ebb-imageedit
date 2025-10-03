@@ -745,6 +745,9 @@ class EbbProgrammable(EbbSprite):
     def __init__(self, data, addr_start):
         super().__init__(data, addr_start)
 
+        self.script_output = []
+        self.movement_data = None
+
         end = len(self.script)
 
         i = 0
@@ -840,19 +843,67 @@ for bank in object_list:
         file = ""
         if len(split) > 1:
             file = f"split/{split[1]}.bin"
-
+        addr = split[0] + 0x8000
         if file.find("OBJ_") == -1:
-            addr = split[0] + 0x8000
             continue
         data = open(file, 'rb').read()
-        addr = split[0] + 0x8000
         new_object = EbbObject(data, addr)
         if new_object.obtype in list(type_map.keys()):
             new_object = type_map[new_object.obtype](data, addr)
 
         objects[split[1]] = new_object
 
+def c_style(object:EbbProgrammable):
+    tab_spacer = 2
+
+    for line in object.script_output:
+        print(str(line).strip())
+
+    object.to_macros()
+    c_lines = []
+    queue = []
+    tabbing = 0
+    b = parse[object.obtype].offset
+    for command in object.script_output:
+        for entry in queue:
+            if entry[0] <= b:
+                tabbing -= tab_spacer
+                mini_tabgen = ""
+                while len(mini_tabgen) < tabbing:
+                    mini_tabgen += " "
+                c_lines.append(f"{mini_tabgen}{entry[1]}\n")
+                queue.remove(entry)
+
+
+        tabgen = ""
+        while len(tabgen) < tabbing:
+            tabgen += " "
+        if command.legible_name.startswith("jump"):
+            if command.args[-1] <= b or command.legible_name == "jump":
+                c_lines.append(f"{tabgen}goto({command.args[-1]});\n")
+            else:
+                queue.append([command.args[-1], "}"]) #assume NOT
+
+                extra = ""
+                if len(command.args) > 1:
+                    extra = str(command.args[:-1])
+                c_lines.append(f"{tabgen}if !({command.legible_name}{extra}) {{\n")
+
+                tabbing += tab_spacer
+                print("basic if")
+        else:
+            c_lines.append(f"{tabgen}{str(command)};\n")
+
+        b += command.scr_len
+    if len(queue) >= 1:
+        c_lines.append("}\n")
+    for line in c_lines:
+        print(line.replace("\n", ""))
+
+
+
+
 for object in list(objects.keys()):
     if issubclass(type(objects[object]), EbbProgrammable):
-        objects[object].to_macros()
-        print(objects[object].lines)
+        if object == "obj/OBJ_MYHOME_DOG":
+            c_style(objects[object])
