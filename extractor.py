@@ -1175,7 +1175,7 @@ class Extractor(object):
         sheets.SheetIO.Extract()
 
     def Recompile():
-        global no_delete
+        global no_delete, quiet
         if not no_delete:
             if os.path.exists("recompile/"):
                 shutil.rmtree("recompile/")
@@ -1222,7 +1222,8 @@ class Extractor(object):
                     out_file = use_thing
                     in_file = recompilableFiles[out_file]["in_file"]
                     get_class = recompilableFiles[out_file]["class"]
-                    print(f"recompiling {file} with {get_class.__name__}")
+                    if not quiet:
+                        print(f"recompiling {file} with {get_class.__name__}")
                     out_bytes = get_class.compile(open(in_file, "r", encoding="utf-8"))
                     if not os.path.exists(os.path.dirname(out_file)):
                         os.makedirs(os.path.dirname(out_file))
@@ -1252,7 +1253,8 @@ class Extractor(object):
                             if gotten_file in assembled_files:
                                 continue
                             if not gotten_file in assembled_files:
-                                print(f"assembling {gotten_file}....")
+                                if not quiet:
+                                    print(f"assembling {gotten_file}....")
                                 assembled_files.append(gotten_file)
                                 bank_bytes += open(gotten_file, "rb").read()
                         else:
@@ -1262,14 +1264,16 @@ class Extractor(object):
                             if gotten_file in assembled_files:
                                 continue
                             if not gotten_file in assembled_files:
-                                print(f"assembling {gotten_file}....")
+                                if not quiet:
+                                    print(f"assembling {gotten_file}....")
                                 assembled_files.append(gotten_file)
                                 bank_bytes += open(gotten_file, "rb").read()
                 else:
                     usename = f"/{side}/bank{bank_number}"
                     gotten_file = get_file(usename)
                     if not gotten_file in assembled_files:
-                        print(f"assembling {gotten_file}....")
+                        if not quiet:
+                            print(f"assembling {gotten_file}....")
                         assembled_files.append(gotten_file)
                         bank_bytes += open(gotten_file, "rb").read()
                 if "end" in list(bank.keys()):
@@ -1295,9 +1299,10 @@ class Extractor(object):
 
 
 no_delete = False
+quiet = False
 if __name__ == "__main__":
     import argparse
-    sys.argv = ['extractor.py', 'r', "-n"]
+    #sys.argv = ['extractor.py', 'r', "-n"]
     parser = argparse.ArgumentParser()
     parser.add_argument('mode', type=str)
     parser.add_argument(
@@ -1306,9 +1311,16 @@ if __name__ == "__main__":
         help="Don't delete existing folders.",
         action="store_true",
     )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        help="Don't print messages.",
+        action="store_true",
+    )
     args = parser.parse_args()
 
     no_delete = args.no_delete
+    quiet = args.quiet
 
     if args.mode == "e":
         Extractor.Extract()

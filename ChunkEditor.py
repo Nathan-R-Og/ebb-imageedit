@@ -555,7 +555,7 @@ class Single_METATILE_Viewer(QGraphicsView):
             print(Map_Stuff.graphics16[adr][tile8_i])
 
             x2,y2 = Tileset_Select_V.current_position
-            get_id = x2 + (y2 * 0x10)
+            get_id = (x2 + (y2 * 0x10)) + (usar * 0x40)
 
             Map_Stuff.graphics16[adr][tile8_i] = get_id
 
@@ -778,7 +778,7 @@ class CHUNK_Scene(QGraphicsScene):
         self.selection = QGraphicsRectItem()
         self.selection.setZValue(1000)
         self.addItem(self.selection)
-        self.chunk_grid = GridItem(64, QColor(255, 0, 0), 8, 8, 1)
+        self.chunk_grid = GridItem(64, QColor(255, 0, 0), 8, 8, 1, True)
         self.chunk_grid.setZValue(998)
         self.addItem(self.chunk_grid)
 

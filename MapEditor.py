@@ -680,18 +680,21 @@ class Scene(QGraphicsScene):
 
 #grid handler
 class GridItem(QGraphicsItem):
-    def __init__(self, gridSize, color, x, y, width, parent=None):
-        super().__init__(parent)
+    def __init__(self, gridSize, color:QColor, x:int, y:int, width:int, ids:bool=False):
+        super().__init__(None)
         self.gridSize = gridSize
-        self.width = x*64
-        self.height = y*64
+        self.base_width = x
+        self.base_height = y
+        self.width = self.base_width*gridSize
+        self.height = self.base_height*gridSize
         self.pen = QPen(color) # Light gray grid
         self.pen.setWidth(width)
+        self.show_ids = ids
 
     def boundingRect(self):
         return QRectF(0, 0, self.width, self.height)
 
-    def paint(self, painter, option, widget):
+    def paint(self, painter:QPainter, option, widget):
         painter.setPen(self.pen)
 
         # Draw vertical grid lines
@@ -701,6 +704,13 @@ class GridItem(QGraphicsItem):
         # Draw horizontal grid lines
         for y in range(0, self.height, self.gridSize):
             painter.drawLine(0, y, self.width, y)
+
+        if self.show_ids:
+            # Draw cunks
+            for y in range(0, self.base_height):
+                for x in range(0, self.base_width):
+                    painter.drawText(QRect(x*self.gridSize, y*self.gridSize, 32, 16), 0, hex(x + (y * self.base_width)))
+
 
 chunk_app = None
 #scene viewer
@@ -755,7 +765,8 @@ class Viewer(QGraphicsView):
 
         palette_i = Map_Stuff.sectorPalette[sector_i]
 
-        secondTileset = 2 if Map_Stuff.mapTileset[chunk_i] else 1
+        secondTileset = Map_Stuff.mapTileset[chunk_i]
+        mapEvent = Map_Stuff.mapEvent[chunk_i]
 
         ts1 = Map_Stuff.sectorTileset1
         ts2 = Map_Stuff.sectorTileset2
@@ -771,7 +782,8 @@ class Viewer(QGraphicsView):
             Map_Toolbar.tileset_2.valueBox.setValue(tileset2)
 
             if Map_Toolbar.select_mode == Toolbar.Select_mode.Chunks:
-                Map_Toolbar.use_tileset.valueBox.setValue(secondTileset)
+                Map_Toolbar.map_event.valueBox.setCheckState(Qt.CheckState.Checked if mapEvent else Qt.CheckState.Unchecked)
+                Map_Toolbar.use_tileset.valueBox.setCheckState(Qt.CheckState.Checked if secondTileset else Qt.CheckState.Unchecked)
                 self._scene.selection.setPos(chunk_x*64,chunk_y*64)
             else:
                 Map_Toolbar.area.valueBox.setValue(area)
@@ -831,7 +843,8 @@ class Viewer(QGraphicsView):
         super().mouseMoveEvent(a0)
         if a0.buttons() & Qt.MouseButton.LeftButton:
             self.move_selection(a0, False)
-            self.place_selection()
+            if Map_Toolbar.select_mode == Toolbar.Select_mode.Chunks:
+                self.place_selection()
 
     def mousePressEvent(self, a0):
         super().mousePressEvent(a0)
@@ -922,8 +935,18 @@ class Toolbar(QVBoxLayout):
         self.tileset_2.valueBox.valueChanged.connect(self.tileset_2_changed)
         info.addLayout(self.tileset_2)
 
-        self.use_tileset = ValueBox("Use Tileset: ", (1, 2), True)
-        self.use_tileset.valueBox.valueChanged.connect(self.use_tileset_changed)
+        self.map_event = ValueBox("Map Event: ", (0, 1), True)
+        self.map_event.removeWidget(self.map_event.valueBox)
+        self.map_event.valueBox = QCheckBox()
+        self.map_event.addWidget(self.map_event.valueBox)
+        self.map_event.valueBox.checkStateChanged.connect(self.map_event_changed)
+        info.addLayout(self.map_event)
+
+        self.use_tileset = ValueBox("Swap Tilesets: ", (1, 2), True)
+        self.use_tileset.removeWidget(self.use_tileset.valueBox)
+        self.use_tileset.valueBox = QCheckBox()
+        self.use_tileset.addWidget(self.use_tileset.valueBox)
+        self.use_tileset.valueBox.checkStateChanged.connect(self.use_tileset_changed)
         info.addLayout(self.use_tileset)
 
         self.area = ValueBox("Area: ", (0, 0x40-1), True)
@@ -1037,6 +1060,30 @@ class Toolbar(QVBoxLayout):
         if not chunk_app is None: # Prevent multiple instances if desired
             set_overrides(Map_Stuff.sectorTileset1[sector_i], Map_Stuff.sectorTileset2[sector_i], Map_Stuff.sectorPalette[sector_i])
 
+    def map_event_changed(self, value):
+        global Map_Viewer
+        pos = Map_Viewer.current_position
+        if not pos:
+            return
+
+        x, y = pos
+
+        global Map_Stuff
+        chunk_x, chunk_y = x, y
+        chunk_i = chunk_x + (chunk_y * 0x100)
+
+        if value == Qt.CheckState.Checked:
+            value = True
+        elif value == Qt.CheckState.Unchecked:
+            value = False
+
+        if value == Map_Stuff.mapEvent[chunk_i]:
+            return
+        Map_Stuff.mapEvent[chunk_i] = value
+
+        chunks = Map_Viewer._scene.chunks[chunk_i]
+        chunks.generate_pixmap()
+
     def use_tileset_changed(self, value):
         global Map_Viewer
         pos = Map_Viewer.current_position
@@ -1049,9 +1096,14 @@ class Toolbar(QVBoxLayout):
         chunk_x, chunk_y = x, y
         chunk_i = chunk_x + (chunk_y * 0x100)
 
-        if value == (2 if Map_Stuff.mapTileset[chunk_i] else 1):
+        if value == Qt.CheckState.Checked:
+            value = True
+        elif value == Qt.CheckState.Unchecked:
+            value = False
+
+        if value == Map_Stuff.mapTileset[chunk_i]:
             return
-        Map_Stuff.mapTileset[chunk_i] = (True if value == 2 else False)
+        Map_Stuff.mapTileset[chunk_i] = value
 
         chunks = Map_Viewer._scene.chunks[chunk_i]
         chunks.generate_pixmap()
@@ -1097,9 +1149,11 @@ class Toolbar(QVBoxLayout):
         self.select_mode = mode
         Map_Viewer._scene.change_selection(mode)
         if self.select_mode == Toolbar.Select_mode.Chunks:
+            self.map_event.show()
             self.use_tileset.show()
             self.area.hide()
         else:
+            self.map_event.hide()
             self.use_tileset.hide()
             self.area.show()
 
