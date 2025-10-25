@@ -6,9 +6,13 @@ import numpy as np
 
 from copy import deepcopy
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 from PIL.ImageQt import ImageQt
 import yaml
+
+from ObjectIO import *
+
+from math import floor, ceil
 
 map_tile_properties = None
 
@@ -35,6 +39,7 @@ class MapInfo(object):
                         bits.append(self.color_map[color])
 
                     self.graphics8.append(bits)
+
 
     def in_yaml(self, yaml_file):
 
@@ -272,6 +277,7 @@ class MapInfo(object):
         return out_bytes
 
 Map_Stuff : MapInfo = None
+Object_Stuff : ObjectInfo = None
 
 palette_data = bytearray()
 map_palette_metadata = []
@@ -299,7 +305,7 @@ def load_palette_from_binary(bin):
             palettes.append([data[0], data[1], data[2], data[3]])
 load_palette_data("split/map_palettes.bin")
 
-NES_PALETTE = open("sheets/nes.pal", "rb").read()
+NES_PALETTE = open("nes.pal", "rb").read()
 
 sprite_palette = [
 [-1, 0xF, 0x00, 0x30], #greyscale
@@ -312,10 +318,11 @@ sprite_palette = [
 for i in range(len(sprite_palette)):
     for color in range(len(sprite_palette[i])):
         if color == 0:
+            sprite_palette[i][color] = (0, 0, 0, 0)
             continue
         id = sprite_palette[i][color]
         id = NES_PALETTE[id*3:(id+1)*3]
-        sprite_palette[i][color] = (id[0], id[1], id[2])
+        sprite_palette[i][color] = (id[0], id[1], id[2], 255)
 
 def convert_palettes_to_rgb():
     global palettes
@@ -461,49 +468,91 @@ class Chunk(object):
         newImage = None
 
 class EBObject(QGraphicsRectItem):
-    table_0 = None
-    table_1 = None
-    table_mix = None
-    loaded_definitions = []
-    being_moved = False
-    fps = 10
-    frame = 0
-    position = None
-    pixmap = None
 
-    def __init__(self, x, y):
+    def __init__(self, in_object, area):
         super().__init__()
-        self.position = (x, y)
 
-        self.setRect(self.position[0]*16, (self.position[1]*16)+8, 16, 16)
-        pen = QPen()
-        pen.setWidth(5)
-        pen.setColor(QColor(255, 0, 0))
-        self.setPen(pen)
+        self.table_0 = None
+        self.table_1 = None
+        self.table_mix = None
+        self.loaded_definitions = []
+        self.being_moved = False
+        self.selected = False
+        self.fps = 10
+        self.frame = 0
+        global template
 
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.next_frame)
-        self.timer.start(round(1000 / self.fps))
+
+        self.main_object = in_object
+        self.position = (in_object.posX, in_object.posY - 0x80)
+
+        self.setRect(self.position[0]*16, (self.position[1]*16)-8, 16, 16)
+
+        self.qgpixmap : QGraphicsPixmapItem = QGraphicsPixmapItem(template)
+        self.qgpixmap.setPos(self.position[0]*16, (self.position[1]*16)-8)
+
+        #generic
+        self.pixmap = None
+
+        #self.timer = QTimer()
+        #self.timer.timeout.connect(self.next_frame)
+        #self.timer.start(round(1000 / self.fps))
+
+        self.generated = False
+
+
+        global Object_Stuff
+        if Object_Stuff == None:
+            return
+
+        if hasattr(self.main_object, "sprite"):
+            self.load_spritedef([f"extract/{self.main_object.sprite}.yaml"])
+
+            #there is a very real chance that if the area_chr_map returns 0
+            #that none of the objects in that area have sprites
+            #WATCH OUT!!!!
+            self.set_table(0, 0)
+            fix = (Object_Stuff.area_chr_map[area] - 0x60) // 2
+            self.set_table(fix, 1)
+
+
+
+    def paintEvent(self, painter, option, widget):
+        super().paintEvent(painter, option, widget)
+        self.paint(painter, option, widget)
+
+    def paint(self, painter:QPainter, option, widget):
+        # Set the brush for filling the rectangle
+        brush = QBrush(QColor(255, 66, 255, 0x80))  # Red color
+        brush.setStyle(Qt.BrushStyle.SolidPattern)    # Solid fill pattern
+        painter.setBrush(brush)
+
+        # Set the pen for the rectangle's border (optional, can be omitted for no border)
+        painter.setPen(Qt.PenStyle.NoPen) # No border for this example, or set a QPen for a border
+        painter.drawRect(self.rect())
 
     def mouseMoveEvent(self, a0):
         if a0.buttons() & Qt.MouseButton.LeftButton:
-            if self.being_moved:
+            global Map_Toolbar
+            if self.being_moved and Map_Toolbar.select_mode == Toolbar.Select_mode.Objects:
                 self.do_move(a0.pos())
                 return
 
     def do_move(self, position):
-        x,y = int(position.x()//16), int(position.y()//16)
+        x,y = int(position.x()//16), int((position.y()+8)//16)
         self.position = (x,y)
 
-        self.setRect(x*16, (y*16)+8, 16, 16)
+        self.setRect(self.position[0]*16, (self.position[1]*16)-8, 16, 16)
+        self.qgpixmap.setPos(self.position[0]*16, (self.position[1]*16)-8)
         self.update()
 
     def mousePressEvent(self, a0):
         self.being_moved = True
-
+        global Map_Toolbar
+        if Map_Toolbar.select_mode == Toolbar.Select_mode.Objects:
+            self.scene().select_object(self)
     def mouseReleaseEvent(self, a0):
         self.being_moved = False
-
     def mouseDoubleClickEvent(self, a0):
         self.being_moved = True
 
@@ -517,81 +566,95 @@ class EBObject(QGraphicsRectItem):
         self.timer.start(round(1000 / self.fps))
         self.update()
 
-    def generate_pixmap(self, painter, option, widget):
+    def general_icon(self):
+        loader = ""
+        if isinstance(self.main_object, EbbDoor):
+            loader = "resources/door.png"
+        elif isinstance(self.main_object, EbbStairs):
+            loader = "resources/stairs.png"
+        elif isinstance(self.main_object, EbbHole):
+            loader = "resources/hole.png"
+        elif isinstance(self.main_object, EbbTrigger):
+            loader = "resources/trigger.png"
+        elif isinstance(self.main_object, EbbFlagDo):
+            loader = "resources/setflag.png"
+        else:
+            loader = "resources/unk.png"
+
+
+        if loader != "":
+            self.setOpacity(0.1)
+            self.qgpixmap.setPixmap(QPixmap.fromImage(ImageQt(Image.open(loader))))
+            self.qgpixmap.setOpacity(0.75)
+            self.generated = True
+
+
+    def generate_pixmap(self):
+        global sprite_palette, Object_Stuff
+        if not hasattr(self.main_object, "sprite"):
+            self.general_icon()
+            return
         if len(self.loaded_definitions) == 0:
             return
-        if self.table_mix == None:
-            return
-
-        painter = QPainter(self)
-        images = []
-        for y in range(self.table_mix.size[1] // 8):
-            for x in range(self.table_mix.size[0] // 8):
-                space = (x*8, y*8, (x+1)*8, (y+1)*8)
-                image = self.table_mix.crop(space)
-                images.append(image)
 
         defis = []
         for defi in self.loaded_definitions:
             defis += defi.definition_data
 
-        definition = defis[self.frame]
-        ppu_offset = definition["ppu"]
+        if self.main_object.direction >= len(defis):
+            print("literally how")
 
+        definition = defis[self.main_object.direction]
+
+        ppu_offset = definition["ppu"]
         p1 = definition["p1"]
         p2 = definition["p2"]
 
         tilepath = definition["tiles"]
-        spriteTiles = yaml.safe_load(open(f"extract/{tilepath}.yaml", "r"))
+        tile_count = configs[self.main_object.obtype].tiles
+        spriteTiles = yaml.safe_load(open(f"extract/{tilepath}.yaml", "r"))[:tile_count]
+
+        #make new image
+        max_x, max_y = (0, 0)
+
+        for tile in spriteTiles:
+            if tile["posX"]-0x10+8 > max_x:
+                max_x = tile["posX"]-0x10+8
+            if tile["posY"]-0x20+8 > max_y:
+                max_y = tile["posY"]-0x20+8
+        newImage = Image.new('RGBA', (max_x, max_y), (0, 0, 0, 0))
+
         for tile in spriteTiles:
             tile_id = ppu_offset+tile["index"]
 
-            image = images[tile_id].copy()
+            image = None
+            if tile_id & 0x80:
+                image = Object_Stuff.gfx[self.table_1][tile_id & 0x7f]
+            else:
+                image = Object_Stuff.gfx[self.table_0][tile_id]
+
+
+            which = [p1, p2][tile["palette"]]
+            choose_palette = sprite_palette[which]
+            image = palette_image(image, choose_palette, 4)
+            im2 = Image.fromarray(image)
+
             if tile["flipX"]:
-                image = ImageOps.mirror(image)
+                im2 = ImageOps.mirror(im2)
             if tile["flipY"]:
-                image = ImageOps.flip(image)
+                im2 = ImageOps.flip(im2)
 
-            choose_palette = sprite_palette[[p1, p2][tile["palette"]]]
+            newImage.alpha_composite(im2, (tile["posX"]-0x10, tile["posY"]-0x20))
 
-            data = np.array(image)   # "data" is a height x width x 4 numpy array
-            red, green, blue, alpha = data.T # Temporarily unpack the bands for readability
+        self.qgpixmap.setPixmap(QPixmap.fromImage(ImageQt(newImage)))
+        self.generated = True
 
-            # Replace white with red... (leaves alpha values alone...)
-            #transparent_areas = (red == 0) & (green == 0) & (blue == 0) & (alpha == 0)
-            black_areas = (red == 0) & (green == 0) & (blue == 0) & (alpha == 255)
-            gray_areas = (red == 102) & (green == 102) & (blue == 102) & (alpha == 255)
-            white_areas = (red == 255) & (green == 254) & (blue == 255) & (alpha == 255)
-
-            #data[..., :-1][transparent_areas.T] = (0, 0, 0) # Transpose back needed
-            data[..., :-1][black_areas.T] = choose_palette[1] # Transpose back needed
-            data[..., :-1][gray_areas.T] = choose_palette[2] # Transpose back needed
-            data[..., :-1][white_areas.T] = choose_palette[3] # Transpose back needed
-
-            im2 = Image.fromarray(data)
-
-            pixmap = QPixmap.fromImage(ImageQt(im2))
-            painter.drawPixmap(tile["posX"], tile["posY"], pixmap)
-        painter.end()
-
-    def load_table(self, img, id):
-        image = Image.open(img, 'r')
-        image = image.convert("RGBA")
+    def set_table(self, page, id):
         if id == 0:
-            self.table_0 = image
+            self.table_0 = page
         elif id == 1:
-            self.table_1 = image
-        self.create_mixtable()
-
-    def create_mixtable(self):
-        if not self.table_0:
-            return
-        elif not self.table_1:
-            return
-
-        self.table_mix = Image.new("RGBA", (0x80, 0x80))
-        self.table_mix.paste(self.table_0, (0*8, 0*8, 16*8, 8*8))
-        self.table_mix.paste(self.table_1, (0*8, 8*8, 16*8, 16*8))
+            self.table_1 = page
+        #self.generate_pixmap()
 
     def load_spritedef(self, paths):
         for path in paths:
@@ -623,13 +686,40 @@ class Scene(QGraphicsScene):
         self.chunk_grid = GridItem(64, QColor(255, 0, 0), 0x100, 0xE0, 1)
         self.chunk_grid.setZValue(998)
         self.addItem(self.chunk_grid)
-        self.sector_grid = GridItem(64*4, QColor(100, 100, 100), 0x100, 0xE0, 3)
+        self.sector_grid = GridItem(64*4, QColor(100, 100, 100), 0x100//4, 0xE0//4, 3)
         self.sector_grid.setZValue(999)
         self.addItem(self.sector_grid)
 
-        new_object = EBObject(5, 5)
-        new_object.setZValue(1001)
-        self.addItem(new_object)
+        self.edit_objects = []
+
+        self.current_object : EBObject = None
+
+        self.doorline = QGraphicsLineItem()
+        pen = QPen()
+        pen.setWidth(5)
+        pen.setColor(QColor(255, 0, 0))
+        self.doorline.setPen(pen)
+        self.addItem(self.doorline)
+        self.doorline.setZValue(1000)
+
+    def select_object(self, passed_object:EBObject):
+        if self.current_object != None:
+            self.current_object.selected = False
+        self.current_object = passed_object
+        self.current_object.selected = True
+
+        if not hasattr(self.current_object.main_object, "warp_data"):
+            self.doorline.setLine(-1,-1,-1,-1)
+            return
+
+        #is warp
+        myposition = self.current_object.position
+        myPos = QPointF(myposition[0]*16, (myposition[1]*16)-8)
+        destposition = (self.current_object.main_object.warp_data.tele_x, self.current_object.main_object.warp_data.tele_y - 0x80)
+        destPos = QPointF(destposition[0]*16, (destposition[1]*16)-8)
+        self.doorline.setLine(int(myPos.x())+8, int(myPos.y())+8, int(destPos.x())+8, int(destPos.y())+8)
+
+
 
     def queue_update(self):
         if self.window == None:
@@ -641,11 +731,21 @@ class Scene(QGraphicsScene):
 
         #the 'boundaries' of chunks.
         fake_rect = [
-            round(poss[0]/64),
-            round(poss[1]/64),
-            round((poss[0]+maxx[0])/64),
-            round((poss[1]+maxx[1])/64),
+            floor(poss[0]/64), #x top left
+            floor(poss[1]/64), #y top left
+            ceil((poss[0]+maxx[0])/64), #x bottom right
+            ceil((poss[1]+maxx[1])/64), #y bottom right
         ]
+
+        #zoomed out limits
+        if fake_rect[0] < 0:
+            fake_rect[0] = 0
+        if fake_rect[1] < 0:
+            fake_rect[1] = 0
+        if fake_rect[2] > 0x100:
+            fake_rect[2] = 0x100
+        if fake_rect[3] > 0xE0:
+            fake_rect[3] = 0xE0
 
         for y in range(fake_rect[1], fake_rect[3]):
             for x in range(fake_rect[0], fake_rect[2]):
@@ -654,6 +754,18 @@ class Scene(QGraphicsScene):
                 if not chunk.generated:
                     chunk.generate_pixmap()
 
+        global Object_Stuff
+        if Object_Stuff != None and self.edit_objects == []:
+            for area in list(Object_Stuff.objects.keys()):
+                for object in Object_Stuff.objects[area]:
+                    new_object = EBObject(object, area)
+                    new_object.setZValue(1000)
+                    self.addItem(new_object)
+                    new_object.generate_pixmap()
+                    if new_object.generated:
+                        self.addItem(new_object.qgpixmap)
+                        new_object.qgpixmap.setZValue(1001)
+                    self.edit_objects.append(new_object)
 
     def change_selection(self, mode):
         if mode in [Toolbar.Select_mode.Chunks, Toolbar.Select_mode.Sectors]:
@@ -718,9 +830,16 @@ class Viewer(QGraphicsView):
     def __init__(self, parent):
         super().__init__()
         self._main = parent
-        self._scene = Scene(0x100*-32, 0xE0*-32, 0x100*64, 0xE0*64)
+
+        self.scalar = [1, 1]
+        self.scale(self.scalar[0], self.scalar[1])
+        sizer = (0x100*64, 0xE0*64)
+        self._scene = Scene(0, 0, sizer[0], sizer[1])
         self.setScene(self._scene)
-        self.setSceneRect(self._scene.itemsBoundingRect())
+        self.setSceneRect(QRectF(0, 0, sizer[0]/self.scalar[0], sizer[1]/self.scalar[1]))
+
+        #move to top left
+        self.centerOn(QPointF(0, 0))
 
         self._scene.window = self
         global Map_Stuff
@@ -862,6 +981,31 @@ class Viewer(QGraphicsView):
     def mouseDoubleClickEvent(self, a0):
         super().mouseDoubleClickEvent(a0)
         self.move_selection(a0, False)
+
+    def wheelEvent(self, event: QWheelEvent):
+        combi = event.angleDelta().y() + event.angleDelta().x()
+        if combi == 0:
+            return
+
+
+        if event.modifiers() != Qt.KeyboardModifier.ControlModifier:
+            super().wheelEvent(event)
+            return
+
+        zoom_factor = 1.15  # Adjust as needed
+        if combi < 0:  # Zoom out
+            zoom_factor = 1 / zoom_factor
+
+
+        self.scalar[0] *= zoom_factor
+        self.scalar[1] *= zoom_factor
+
+
+        self.resetTransform() # Reset the view's transformation
+        self.scale(self.scalar[0], self.scalar[1])
+        sizer = (0x100*64, 0xE0*64)
+        self.setSceneRect(QRectF(0, 0, sizer[0], sizer[1]))
+
 
 class ValueBox(QHBoxLayout):
     def __init__(self, label_name, range, hex=True):
@@ -1422,7 +1566,7 @@ class ThemeWindow(QMainWindow):
 class Window(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("MOTHER map viewer")
+        self.setWindowTitle("MOTHER Map Editor")
 
         toolbar = QToolBar("FileIO")
         self.addToolBar(toolbar)
@@ -1444,7 +1588,17 @@ class Window(QMainWindow):
         self.palette_changer.triggered.connect(self.change_palette)
         toolbar.addAction(self.palette_changer)
 
+        self.palette_changer = QAction("Objects", self)
+        self.palette_changer.triggered.connect(self.load_objects)
+        toolbar.addAction(self.palette_changer)
+
         self.setCentralWidget(ActualWindow())
+
+    def load_objects(self):
+        global Object_Stuff
+        if Object_Stuff == None:
+            Object_Stuff = ObjectInfo()
+
 
     def open_file(self):
         msgBox = QMessageBox()

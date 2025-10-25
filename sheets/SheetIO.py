@@ -5,7 +5,7 @@ from PIL import Image, ImageOps
 from math import ceil, sqrt
 
 
-NES_PALETTE = open("sheets/nes.pal", "rb").read()
+NES_PALETTE = open("nes.pal", "rb").read()
 bg_color = (0xff,0,0xff)
 #create palette image
 p_img = Image.new('P', (1, 1))

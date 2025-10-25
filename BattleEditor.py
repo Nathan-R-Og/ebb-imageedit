@@ -77,7 +77,7 @@ ar.sort()
 fuck = [balls[key] for key in ar]
 enemy_palettes = [open(file, "rb").read() for file in fuck]
 
-NES_PALETTE = open("sheets/nes.pal", "rb").read()
+NES_PALETTE = open("nes.pal", "rb").read()
 
 def convert_palettes_to_rgb():
     global enemy_palettes

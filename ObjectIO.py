@@ -1,7 +1,6 @@
 import yaml
-
-obj_typeinfo = open("split/obj_typeinfo.bin", "rb").read()
-obj_bank2 = open("split/objbank_2.bin", "rb").read()
+from PIL import Image
+import numpy as np
 
 class EbbTypeDef(object):
     def __init__(self, data):
@@ -15,14 +14,11 @@ class EbbTypeDef(object):
         self.high_priority = (data[3] & 0b00010000) >> 4
         self.offset = data[3] & 0b00001111
 
-parse = {}
-for i in range(0x2e):
-    parse[i] = EbbTypeDef(obj_typeinfo[i*4:(i+1)*4])
-
 class EbbObject(object):
     lines = []
     addr_start = -1
     def __init__(self, data, addr_start):
+        global configs
         self.byte_data = data
         self.addr_start = addr_start
 
@@ -34,21 +30,11 @@ class EbbObject(object):
         self.direction = header2 & 0b0000000000111111
         self.posY = (header2 & 0b1111111111000000) >> 6
 
-        self.script = data[parse[self.obtype].offset:]
+        self.script = data[configs[self.obtype].offset:]
 
     def to_macros(self):
         self.lines = [f"objectDef {self.obtype}, {self.posX}, {self.direction}, {self.posY}\n"]
 
-
-# .define moveDef(direction, cmd, tiles) .word (tiles << 8) | (cmd << 3) | direction
-
-# .define objectDef(type, posX, direction, posY) .word (posX << 6) | type, (posY << 6) | direction
-# ;top left of the map is 0, $80. why?
-# .define doorArgDef(music, targetPosX, targetDirection, targetPosY) .word (targetPosX << 6) | music, (targetPosY << 6) | targetDirection
-
-# ;APPARENTLY they made the teleport gaining object based??????
-# ;bbbbbfff
-# .define teleportFlagDef(flag, byte) .byte (byte << 3) | flag
 
 class DoorArgDef(object):
     def __init__(self, data):
@@ -69,7 +55,8 @@ class DoorArgDef(object):
 class EbbWarp(EbbObject):
     def __init__(self, data, addr_start):
         super().__init__(data, addr_start)
-        self.warp_data = DoorArgDef(data[4:parse[self.obtype].offset])
+        global configs
+        self.warp_data = DoorArgDef(data[4:configs[self.obtype].offset])
 
     def to_macros(self):
         super().to_macros()
@@ -86,27 +73,19 @@ class EbbHole(EbbWarp):
     def __init__(self, data, addr_start):
         super().__init__(data, addr_start)
 
-
-mem_data = yaml.safe_load(open("split.yaml"))
-sprite_list = mem_data["splits"]["prg"][0x15]["splits"]
-sprite_files = {}
-for i in range(len(sprite_list)):
-    if not sprite_list[i][1].startswith("sprites/defs/"):
-        continue
-    sprite_files[sprite_list[i][0]+0x8000] = sprite_list[i][1]
-
 #generic 'with sprite' class
 class EbbSprite(EbbObject):
     def __init__(self, data, addr_start):
         super().__init__(data, addr_start)
-        self.sprite_addr = int.from_bytes(data[4:parse[self.obtype].offset], "little")
+        global configs, sprite_files
+        self.sprite_addr = int.from_bytes(data[4:configs[self.obtype].offset], "little")-0x8000
         self.sprite = sprite_files[self.sprite_addr]
 
     def to_macros(self):
         super().to_macros()
         self.lines.append(f".addr {self.sprite}\n")
 
-
+###Instructions
 class EbbScript(object):
     def __init__(self, byte_data):
         #optionals
@@ -131,9 +110,11 @@ class EbbScript(object):
                 i += 1
             elif arg in ['addr', 'word']: #ram address
                 word = int.from_bytes(byte_data[i:i+2], 'little')
+                if arg == 'addr':
+                    word -= 0x8000
                 self.args.append(word)
                 i += 2
-            elif arg in ['doorArgDef']: #ram address
+            elif arg in ['doorArgDef']: #dadef
                 self.args.append(DoorArgDef(byte_data[i:i+4]))
                 i += 4
 
@@ -269,6 +250,12 @@ class FUNC_COUNTERLESSTHAN(EbbScript):
     macro = "OBJ_COUNTERLESSTHAN"
     macro_args = ['byte', 'byte', 'oaddr']
     legible_name = "jump_if_counter_less_than"
+class FUNC_WRITE_SAVEMETA(EbbScript):
+    id = 0x17
+    scr_len = 1+1+1
+    macro = "OBJ_WRITE_SAVEMETA"
+    macro_args = ['byte', 'byte']
+    legible_name = "write_to_savemeta"
 class FUNC_CHOOSE_CHARACTER(EbbScript):
     id = 0x18
     scr_len = 1+1
@@ -299,6 +286,12 @@ class FUNC_LOAD_NUMBER(EbbScript):
     macro = "OBJ_LOAD_NUMBER"
     macro_args = ['word']
     legible_name = "load_number"
+class FUNC_NUMBER_LESS_THAN(EbbScript):
+    id = 0x1E
+    scr_len = 1+2+1
+    macro = "OBJ_NUMBERLESSTHAN"
+    macro_args = ['word', 'oaddr']
+    legible_name = "jump_if_number_less_than"
 class FUNC_SHOW_MONEY(EbbScript):
     id = 0x1F
     scr_len = 1
@@ -322,6 +315,12 @@ class FUNC_DISPLAY_ITEMS(EbbScript):
     macro = "OBJ_DISPLAY_ITEMS"
     macro_args = ['byte', 'byte', 'byte', 'byte', 'oaddr']
     legible_name = "jump_if_declined_showing_shop"
+class FUNC_CHARACTER_NOT_HAS_ITEM(EbbScript):
+    id = 0x23
+    scr_len = 1+1+1
+    macro = "OBJ_CHARA_NOT_HAS_ITEM"
+    macro_args = ['byte', 'oaddr']
+    legible_name = "jump_if_chara_doesnt_have"
 class FUNC_PICK_ITEM(EbbScript):
     id = 0x25
     scr_len = 1+1
@@ -442,6 +441,12 @@ class FUNC_CHANGE_TYPE(EbbScript):
     macro = "OBJ_CHANGE_TYPE"
     macro_args = ['byte']
     legible_name = "change_type"
+class FUNC_SET_FADE_TYPE(EbbScript):
+    id = 0x3C
+    scr_len = 1+1
+    macro = "OBJ_SET_FADE"
+    macro_args = ['byte']
+    legible_name = "load_fade"
 class FUNC_TELEPORT(EbbScript):
     id = 0x3d
     scr_len = 1+4
@@ -512,6 +517,17 @@ class FUNC_TANK(EbbScript):
     macro = "OBJ_TANK"
     macro_args = ['byte']
     legible_name = "spawn_tank"
+class FUNC_BOAT(EbbScript):
+    id = 0x49
+    scr_len = 1+1
+    macro = "OBJ_BOAT"
+    macro_args = ['byte']
+    legible_name = "spawn_boat"
+class FUNC_TRAIN(EbbScript):
+    id = 0x4A
+    scr_len = 1
+    macro = "OBJ_TRAIN"
+    legible_name = "spawn_train"
 class FUNC_NOVEC(EbbScript):
     id = 0x4C
     scr_len = 1+1
@@ -523,6 +539,11 @@ class FUNC_END_PLANE(EbbScript):
     scr_len = 1
     macro = "OBJ_END_PLANE"
     legible_name = "end_plane_path"
+class FUNC_UNK(EbbScript):
+    id = 0x4E
+    scr_len = 1
+    macro = "OBJ_UNK"
+    legible_name = "unk"
 class FUNC_J_UNK2(EbbScript):
     id = 0x4F
     scr_len = 1+1
@@ -603,6 +624,11 @@ class FUNC_PLAY_SOUND(EbbScript):
     macro = "OBJ_PLAY_SOUND"
     macro_args = ['byte']
     legible_name = "play_sound"
+class FUNC_TEACH_TELEPORT(EbbScript):
+    id = 0x5F
+    scr_len = 1
+    macro = "OBJ_TEACH_TELEPORT"
+    legible_name = "teach_teleport"
 class FUNC_NOT_MAX_PP(EbbScript):
     id = 0x60
     scr_len = 1+1
@@ -643,6 +669,11 @@ class FUNC_REGISTER_NAME(EbbScript):
     scr_len = 1
     macro = "OBJ_REGISTER_NAME"
     legible_name = "register_name"
+class FUNC_DARKEN_PALETTE(EbbScript):
+    id = 0x67
+    scr_len = 1
+    macro = "OBJ_DARKEN"
+    legible_name = "darken_palette"
 class FUNC_LAND_MINE(EbbScript):
     id = 0x68
     scr_len = 1
@@ -671,15 +702,18 @@ SCRIPT_TABLE = {
     0x14: FUNC_INCREMENT_COUNTER, #increments counter c
     0x15: FUNC_RESET_COUNTER, #resets counter c
     0x16: FUNC_COUNTERLESSTHAN, #jumps to j if counter c < int n
+    0x17: FUNC_WRITE_SAVEMETA, #write int n to save[:0x40]
     0x18: FUNC_CHOOSE_CHARACTER, #choose character, jump if b pressed
     0x19: FUNC_PICK_CHARACTER, #select character
     0x1A: FUNC_NOT_CHARACTER_SELECTED, #jump to j if chararacter c not selected
     0x1B: FUNC_NO_NEW_MONEY, #jump to j if no money has been gained since last call
     0x1D: FUNC_LOAD_NUMBER, #load number ????
+    0x1E: FUNC_NUMBER_LESS_THAN, #jumps to j if int (old) n < int n
     0x1F: FUNC_SHOW_MONEY, #yeah
     0x20: FUNC_CHOOSE_ITEM, #jump to j if declined
     0x21: FUNC_CHOOSE_ITEM_CLOSET, #jump to j if declined
     0x22: FUNC_DISPLAY_ITEMS, #jump if b pressed
+    0x23: FUNC_CHARACTER_NOT_HAS_ITEM, #jump to j if i not in selected character's inventory
     0x25: FUNC_PICK_ITEM, #load i into selected item
     0x26: FUNC_IS_NOT_SELECTED, #jump to j if i isnt selected
     0x27: FUNC_NOT_HAS_ITEM, #jump to j if i not in inventory
@@ -700,6 +734,7 @@ SCRIPT_TABLE = {
     0x39: FUNC_NO_ITEMS_CLOSET, #jump to j if no items in closet
     0x3A: FUNC_PARTY_CHARACTER, #select character c in party, jump to j if not present
     0x3B: FUNC_CHANGE_TYPE, #change object type to t
+    0x3C: FUNC_SET_FADE_TYPE, #load f into fade_type
     0x3D: FUNC_TELEPORT, #teleport player to doorArgDef (basically, runs a door command)
     0x3E: FUNC_MOVE, #move using m pointer (word)
     0x3F: FUNC_SIGNAL, #signal object o (index)
@@ -712,8 +747,11 @@ SCRIPT_TABLE = {
     0x46: FUNC_ROCKET, #spawn rocket in direction (?)
     0x47: FUNC_AIRPLANE, #spawn airplane in direction (?)
     0x48: FUNC_TANK, #spawn tank in direction (?)
+    0x49: FUNC_BOAT, #spawn airplane in direction (?)
+    0x4A: FUNC_TRAIN, #spawn train
     0x4C: FUNC_NOVEC, #spawn players in direction (?)
     0x4D: FUNC_END_PLANE, #end plane path
+    0x4E: FUNC_UNK, #???
     0x4F: FUNC_J_UNK2, #jump to j if ?????
     0x50: FUNC_NOT_MAX_HEALTH, #jump to j if < max hp
     0x51: FUNC_HEAL, #heal hp n
@@ -728,6 +766,7 @@ SCRIPT_TABLE = {
     0x5A: FUNC_PLAY_MUSIC, #play m song
     0x5B: FUNC_PLAY_SOUND2, #play s
     0x5C: FUNC_PLAY_SOUND, #play s
+    0x5F: FUNC_TEACH_TELEPORT, #teach ninten and ana teleport
     0x60: FUNC_NOT_MAX_PP, #jump to j if < max pp
     0x61: FUNC_PPHEAL, #heal pp n
     0x62: FUNC_TAKE_WEAPON, #jump to j if no weapon, else take
@@ -735,6 +774,7 @@ SCRIPT_TABLE = {
     0x64: FUNC_DO_LIVE_SHOW, #in ellay
     0x65: FUNCINCOMPLETE_MELODIES, #jump to j if not all melodies learnt
     0x66: FUNC_REGISTER_NAME, #register name
+    0x67: FUNC_DARKEN_PALETTE, #magicant end
     0x68: FUNC_LAND_MINE, #in yucca desert
 }
 
@@ -744,6 +784,7 @@ class EbbProgrammable(EbbSprite):
     movement_data = None
     def __init__(self, data, addr_start):
         super().__init__(data, addr_start)
+        global configs, SCRIPT_TABLE
 
         self.script_output = []
         self.movement_data = None
@@ -762,7 +803,46 @@ class EbbProgrammable(EbbSprite):
 
             #MOVE pointers usually indicate the end of the script.
             if get_class == FUNC_MOVE:
-                result = new_script.args[0] - (self.addr_start+parse[self.obtype].offset)
+                result = new_script.args[0] - (self.addr_start+configs[self.obtype].offset)
+                if end > result:
+                    end = result
+            i += len(byte_data)
+
+        if end < len(self.script):
+            self.movement_data = self.script[end:]
+
+    def to_macros(self):
+        super().to_macros()
+        for script in self.script_output:
+            self.lines.append(f"{script}\n")
+
+
+
+class EbbProgrammable_NoSprite(EbbObject):
+    script_output = []
+    movement_data = None
+    def __init__(self, data, addr_start):
+        super().__init__(data, addr_start)
+        global configs, SCRIPT_TABLE
+
+        self.script_output = []
+        self.movement_data = None
+
+        end = len(self.script)
+
+        i = 0
+        while i < end:
+            func = self.script[i]
+            get_class = SCRIPT_TABLE[func]
+            if type(get_class) == list:
+                break
+            byte_data = self.script[i:i+get_class.scr_len]
+            new_script = get_class(byte_data)
+            self.script_output.append(new_script)
+
+            #MOVE pointers usually indicate the end of the script.
+            if get_class == FUNC_MOVE:
+                result = new_script.args[0] - (self.addr_start+configs[self.obtype].offset)
                 if end > result:
                     end = result
             i += len(byte_data)
@@ -814,96 +894,169 @@ class EbbFlagresetSee(EbbFlagDo):
     def __init__(self, data, addr_start):
         super().__init__(data, addr_start)
 
-type_map = {
-    0: EbbObject, # Dummy
-    1: EbbDoor,
-    2: EbbDoor,
-    3: EbbStairs,
-    4: EbbHole,
-    8: EbbObject, # player
-    0x10: EbbStationaryNPC,
-    0x11: EbbWanderingNPC,
-    0x12: EbbWanderingNPCFast,
-    0x13: EbbSpinningNPC,
-    0x14: EbbStationaryNPC_FlagCheck,
-    0x15: EbbWanderingNPC_FlagCheck,
-    0x16: EbbWanderingNPCFast_FlagCheck,
-    0x17: EbbSpinningNPC_FlagCheck,
-    0x29: EbbFlagsetSee,
-    0x2A: EbbFlagresetSee,
-}
+class EbbSign(EbbProgrammable):
+    def __init__(self, data, addr_start):
+        super().__init__(data, addr_start)
+        #this is a workaround :)
+        self.code_direction = self.direction
+        self.direction = 0
+
+class EbbTrigger(EbbProgrammable_NoSprite):
+    def __init__(self, data, addr_start):
+        super().__init__(data, addr_start)
+
+class EbbPresent(EbbObject):
+    def __init__(self, data, addr_start):
+        super().__init__(data, addr_start)
+        global sprite_files
+        self.sprite_addr = int.from_bytes(data[4:6], "little")-0x8000
+        self.sprite = sprite_files[self.sprite_addr]
+        self.item = data[6]
+        self.flag = data[7]
+
+    def to_macros(self):
+        super().to_macros()
+        self.lines.append(f".addr {self.sprite}\n")
+        self.lines.append(f".byte {self.item} ; item\n")
+        self.lines.append(f".byte {self.flag} ; flag\n")
+
+
+
+#setup configs
+obj_typeinfo = open("split/obj_typeinfo.bin", "rb").read()
+configs = []
+for i in range(len(obj_typeinfo)//4):
+    configs.append(EbbTypeDef(obj_typeinfo[i*4:(i+1)*4]))
 
 mem_data = yaml.safe_load(open("split.yaml"))
-object_list = [mem_data["splits"]["prg"][0x10]]
+sprite_list = mem_data["splits"]["prg"][0x15]["splits"]
+sprite_files = {}
+for sprite in sprite_list:
+    if not sprite[1].startswith("sprites/defs/"):
+        continue
+    sprite_files[sprite[0]] = sprite[1]
 
-objects = {}
-for bank in object_list:
-    addr = 0x8000
-    for split in bank["splits"]:
-        file = ""
-        if len(split) > 1:
-            file = f"split/{split[1]}.bin"
-        addr = split[0] + 0x8000
-        if file.find("OBJ_") == -1:
-            continue
-        data = open(file, 'rb').read()
-        new_object = EbbObject(data, addr)
-        if new_object.obtype in list(type_map.keys()):
-            new_object = type_map[new_object.obtype](data, addr)
+class ObjectInfo(object):
 
-        objects[split[1]] = new_object
+    color_map = {
+        (0,0,0,0): 0,
+        (0,0,0,255): 1,
+        (102,102,102,255): 2,
+        (255,254,255,255): 3,
+    }
 
-def c_style(object:EbbProgrammable):
-    tab_spacer = 2
+    def __init__(self):
+        #chr maps
+        self.area_chr_map = bytearray(open("split/area_character_lut.bin", "rb").read())
 
-    for line in object.script_output:
-        print(str(line).strip())
+        #class maps
+        self.type_map = {
+            0: EbbObject, # Dummy
+            1: EbbDoor,
+            2: EbbDoor,
+            3: EbbStairs,
+            4: EbbHole,
+            8: EbbObject, # player
+            0x10: EbbStationaryNPC,
+            0x11: EbbWanderingNPC,
+            0x12: EbbWanderingNPCFast,
+            0x13: EbbSpinningNPC,
+            0x14: EbbStationaryNPC_FlagCheck,
+            0x15: EbbWanderingNPC_FlagCheck,
+            0x16: EbbWanderingNPCFast_FlagCheck,
+            0x17: EbbSpinningNPC_FlagCheck,
+            0x19: EbbSign, #signs?
+            0x1b: EbbTrigger, #trigger
+            0x20: EbbPresent, #present
+            0x29: EbbFlagsetSee,
+            0x2A: EbbFlagresetSee,
+        }
 
-    object.to_macros()
-    c_lines = []
-    queue = []
-    tabbing = 0
-    b = parse[object.obtype].offset
-    for command in object.script_output:
-        for entry in queue:
-            if entry[0] <= b:
-                tabbing -= tab_spacer
-                mini_tabgen = ""
-                while len(mini_tabgen) < tabbing:
-                    mini_tabgen += " "
-                c_lines.append(f"{mini_tabgen}{entry[1]}\n")
-                queue.remove(entry)
+        #split objects
+        self.object_banks = {
+            1: bytearray(open("split/objbank_1.bin", "rb").read()),
+            2: bytearray(open("split/objbank_2.bin", "rb").read()),
+            3: bytearray(open("split/objbank_3.bin", "rb").read()),
+        }
+        self.objects = {
+        }
+        self.decompile_objects()
+
+        self.gfx = {}
+        for page in range(12):
+            image = Image.open(f"extract/graphics/characters{page+1}.png", 'r').convert("RGBA")
+            self.gfx[page] = []
+            for y in range(8):
+                for x in range(0x10):
+                    rect = (x*8, y*8, (x+1)*8, (y+1)*8)
+                    newImage = np.array(image.crop(rect)).flatten()
+                    bits = bytearray()
+                    for i in range(len(newImage)//4):
+                        color = tuple(newImage[i*4:(i+1)*4])
+                        bits.append(self.color_map[color])
+
+                    self.gfx[page].append(bits)
+
+    def decompile_objects(self):
+        area_count = 0
+        for bank in list(self.object_banks.keys()):
+            bank_bytes = self.object_banks[bank]
+
+            bank_area_lut = []
+            #read bank area list
+            i = 0
+            while i < len(bank_bytes):
+                if len(bank_area_lut) > 0:
+                    if i == bank_area_lut[0]:
+                        break
+                bank_area_lut.append(int.from_bytes(bank_bytes[i:i+2], 'little')-0x8000)
+                i += 2
 
 
-        tabgen = ""
-        while len(tabgen) < tabbing:
-            tabgen += " "
-        if command.legible_name.startswith("jump"):
-            if command.args[-1] <= b or command.legible_name == "jump":
-                c_lines.append(f"{tabgen}goto({command.args[-1]});\n")
-            else:
-                queue.append([command.args[-1], "}"]) #assume NOT
+            area_num = 0
+            for area in bank_area_lut:
+                area_obj_lut = []
 
-                extra = ""
-                if len(command.args) > 1:
-                    extra = str(command.args[:-1])
-                c_lines.append(f"{tabgen}if !({command.legible_name}{extra}) {{\n")
+                #read area object list
+                i = area
+                while i < len(bank_bytes):
+                    get = int.from_bytes(bank_bytes[i:i+2], 'little')
+                    if get == 0:
+                        break
+                    area_obj_lut.append(get-0x8000)
+                    i += 2
 
-                tabbing += tab_spacer
-                print("basic if")
-        else:
-            c_lines.append(f"{tabgen}{str(command)};\n")
+                #get object data from splices
+                x = 0
+                while x < len(area_obj_lut):
+                    #if last, just go to start of next list
+                    addr = area_obj_lut[x]
+                    if x == len(area_obj_lut)-1:
+                        #if last area, go to end of bankdata
+                        if area_num == len(bank_area_lut)-1:
+                            area_obj_lut[x] = bank_bytes[addr:]
+                        else:
+                            area_obj_lut[x] = bank_bytes[addr:bank_area_lut[area_num+1]]
+                    else:
+                        area_obj_lut[x] = bank_bytes[addr:area_obj_lut[x+1]]
+                    area_obj_lut[x] = [area_obj_lut[x], addr]
+                    x += 1
 
-        b += command.scr_len
-    if len(queue) >= 1:
-        c_lines.append("}\n")
-    for line in c_lines:
-        print(line.replace("\n", ""))
+                #output
+                self.objects[area_count] = area_obj_lut
+
+                area_num += 1
+                area_count += 1
+
+        for area in list(self.objects.keys()):
+            area_objects = self.objects[area]
+            for o in range(len(area_objects)):
+                object = area_objects[o]
+                new_object = EbbObject(object[0], object[1])
+                if new_object.obtype in list(self.type_map.keys()):
+                    new_object = self.type_map[new_object.obtype](object[0], object[1])
+                area_objects[o] = new_object
 
 
-
-
-for object in list(objects.keys()):
-    if issubclass(type(objects[object]), EbbProgrammable):
-        if object == "obj/OBJ_MYHOME_DOG":
-            c_style(objects[object])
+#debug
+#Object_Stuff = ObjectInfo()

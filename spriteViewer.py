@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image, ImageOps
 from PIL.ImageQt import ImageQt
 
-NES_PALETTE = open("sheets/nes.pal", "rb").read()
+NES_PALETTE = open("nes.pal", "rb").read()
 
 sprite_palette = [
 [-1, 0xF, 0x00, 0x30], #greyscale
