@@ -1,3 +1,4 @@
+
 QWidget {
     font-family: "Earthbound Beginnings";
     font-size: 16px;
@@ -47,4 +48,12 @@ QToolButton:hover {
 }
 QToolButton:disabled {
     color: #666; /* Sky blue on hover */
+}
+
+QTextEdit {
+    font-family: "Earthbound Beginnings";
+    font-size: 16px;
+    background-color: black;
+    color: white;
+    line-height: 2;
 }

@@ -1,7 +1,8 @@
 # ebb-imageedit
 Ripper and Compiler for EarthBound Beginnings.
 
-`python3 extractor.py e` to extract assets.
-`python3 extractor.py r` to recompile (and at some point, link) assets.
+`python3 configure.py` to split assets to binary files.
+`python3 extractor.py` to extract assets to assembly files.
+`python3 recompiler.py` to recompile and link assets, and patch over your baserom.
 
-Currently not shiftable, only because I don't have a good linking solution yet. When that gets fixed, all will be well.
+WIP Linking solution.

@@ -8,7 +8,7 @@ def doSplit(dir):
     yamlname = dir+".yaml"
     if not os.path.exists(yamlname):
         print("yaml does not exist! skipping...")
-        return
+        return False
     data_loaded = yaml.safe_load(open(yamlname, 'r'))
 
     rom = ""
@@ -19,13 +19,13 @@ def doSplit(dir):
                 rom = mrom
                 break
     if rom == "":
-        return
+        return False
 
     rom_bytes = open(rom, "rb").read()
     rom_name = data_loaded["name"]
     print(f"splitting {rom} for {rom_name} assets")
 
-    output = f"{dir}/"
+    output = f"split/{dir}/"
 
     bankspace = 0
 
@@ -96,3 +96,4 @@ def doSplit(dir):
                 if not os.path.exists(pathOnly):
                     os.makedirs(pathOnly)
                 open(end_result, "ab").write(bankData[start:end])
+    return True

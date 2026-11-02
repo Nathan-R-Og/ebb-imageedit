@@ -1,0 +1,77 @@
+dialogue1:
+  type: CHR
+  bank: 0x10
+  pos: 0
+  size: 0x2000
+  end: 0x1fa6
+  vram: 0
+dialogue2:
+  type: CHR
+  bank: 0x11
+  pos: 0
+  size: 0x2000
+  end: 0x1ffc
+  vram: 0x2000
+dialogue3:
+  type: CHR
+  bank: 0x12
+  pos: 0
+  size: 0x2000
+  end: 0x1fea
+  vram: 0x4000
+dialogue4:
+  type: CHR
+  bank: 0x13
+  pos: 0
+  size: 0x2000
+  end: 0x1fe8
+  vram: 0x6000
+dialogue5:
+  type: CHR
+  bank: 0x14
+  pos: 0
+  size: 0x2000
+  end: 0x1fcb
+  vram: 0x8000
+dialogue6:
+  type: CHR
+  bank: 0x15
+  pos: 0
+  size: 0x2000
+  end: 0x1fa1
+  vram: 0xA000
+dialogue7:
+  type: CHR
+  bank: 0x16
+  pos: 0
+  size: 0x2000
+  end: 0x1fb6
+  vram: 0xC000
+dialogue8:
+  type: CHR
+  bank: 0x17
+  pos: 0
+  size: 0x2000
+  end: 0x1056
+  vram: 0xE000
+dialogue9:
+  type: CHR
+  bank: 0x18
+  pos: 0
+  size: 0x2000
+  end: 0x1f1c
+  vram: 0x10000
+dialogue10:
+  type: CHR
+  bank: 0x19
+  pos: 0
+  size: 0x2000
+  end: 0x1653
+  vram: 0x12000
+text_pointers:
+  type: PRG
+  bank: 0x18
+  pos: 0
+  size: 0x1e00
+  end: 0x1e00
+  vram: 0x8000

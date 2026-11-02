@@ -1,0 +1,554 @@
+name: MOTHER
+md5: [218503a880999363ac83945096040492, bf1e0bc9c390fdbb2b3ca22d784db7d2]
+mapper: MMC3
+header: yes
+splits:
+  prg:
+    - bank: 0
+      splits:
+      - [0]
+      - [1, enemyNames]
+      - [0x2A5]
+      - [0x300]
+      - [0x57a, battlePalettes]
+      - [0x77a, battle_messages]
+      - [0x1800, itemData]
+      - [0x1C00, choicerData]
+      - [0x1DC0, expRates]
+      - [0x1E00, psiData]
+    - bank: 1
+      splits:
+      - [0, map]
+    - bank: 2
+      splits:
+      - [0, map]
+    - bank: 3
+      splits:
+      - [0, map]
+    - bank: 4
+      splits:
+      - [0, map]
+    - bank: 5
+      splits:
+      - [0, map]
+    - bank: 6
+      splits:
+      - [0, map]
+    - bank: 7
+      splits:
+      - [0, map]
+    - bank: 8
+      splits:
+      - [0, map]
+    - bank: 9
+      splits:
+      - [0, map]
+    - bank: 0xA
+      splits:
+      - [0, map]
+    - bank: 0xB
+      splits:
+      - [0, map]
+    - bank: 0xC
+      splits:
+      - [0, map]
+    - bank: 0xD
+      splits:
+      - [0, map]
+    - bank: 0xE
+      splits:
+      - [0, map]
+    - bank: 0xF
+      splits:
+      - [0, map]
+    - bank: 0x10
+      end: 0x1f7d
+      splits:
+      - [0, objbank_1]
+    - bank: 0x11
+      end: 0x1d96
+      splits:
+      - [0, objbank_2]
+    - bank: 0x12
+      end: 0x1fa0
+      splits:
+      - [0, objbank_3]
+    - bank: 0x13
+      end: 0x1fd3
+      #splits:
+      #- [0]
+    - bank: 0x14
+      end: 0x1ff0
+      splits:
+      - [0, map_tile_properties]
+      - [0x1000, map_palettes]
+      - [0x1200, spawn_sets]
+      - [0x1400]
+    - bank: 0x15
+      end: 0x19f8
+      splits:
+      - [0, sprite_defs]
+      - [0xB5c, sprites]
+    - bank: 0x16
+      end: 0x1f9f
+      splits:
+      - [0, stats/UNKENEMY0]
+      - [0x20, stats/BIGWOODOH]
+      - [0x40, stats/DRAGON]
+      - [0x60, stats/R7038]
+      - [0x80, stats/ELEPHANT]
+      - [0xA0, stats/BEAR]
+      - [0xC0, stats/BIG_FOOT]
+      - [0xE0, stats/MAD_TRUCK]
+      - [0x100, stats/OLD_ROBOT]
+      - [0x120, stats/MEGABORG]
+      - [0x140, stats/GARGOYLE]
+      - [0x160, stats/GABILAN]
+      - [0x180, stats/GORILLA]
+      - [0x1A0, stats/BISON]
+      - [0x1C0, stats/TIGER]
+      - [0x1E0, stats/MAD_CAR]
+      - [0x200, stats/RAEB_YDDET]
+      - [0x220, stats/MAGIC_SNAIL]
+      - [0x240, stats/TITANEES]
+      - [0x260, stats/GIEGUE]
+      - [0x280, stats/EAGLE]
+      - [0x2A0, stats/WOLF]
+      - [0x2C0, stats/SEAGULL]
+      - [0x2E0, stats/ALLIGATOR]
+      - [0x300, stats/ENERGYROBOT]
+      - [0x320, stats/THE_FISH]
+      - [0x340, stats/FUGITIVE]
+      - [0x360, stats/BBS_BOSS]
+      - [0x380, stats/BARBOT]
+      - [0x3A0, stats/NANCY]
+      - [0x3C0, stats/STARMAN]
+      - [0x3E0, stats/ULLRICH]
+      - [0x400, stats/CEREBRUM]
+      - [0x420, stats/MOOK]
+      - [0x440, stats/ARMOR]
+      - [0x460, stats/WOODOH]
+      - [0x480, stats/WALLY]
+      - [0x4A0, stats/THE_HIPPIE]
+      - [0x4C0, stats/BAG_LADY]
+      - [0x4E0, stats/BB_GANG]
+      - [0x500, stats/DR_DISTORTO]
+      - [0x520, stats/UNKENEMY1]
+      - [0x540, stats/GANG_ZOMBIE]
+      - [0x560, stats/PSEUDOZOMBI]
+      - [0x580, stats/CROW]
+      - [0x5A0, stats/SNAKE]
+      - [0x5C0, stats/HYENA]
+      - [0x5E0, stats/COUGAR]
+      - [0x600, stats/CENTIPEDE]
+      - [0x620, stats/DUST_BALL]
+      - [0x640, stats/FLY]
+      - [0x660, stats/SPIDER]
+      - [0x680, stats/SCORPION]
+      - [0x6A0, stats/ROPE]
+      - [0x6C0, stats/FIRE_BALL]
+      - [0x6E0, stats/WATCHER]
+      - [0x700, stats/GROUCHO]
+      - [0x720, stats/GHOST]
+      - [0x740, stats/LIL_SAUCER]
+      - [0x760, stats/MR_BAT]
+      - [0x780, stats/STARMAN_JR]
+      - [0x7A0, stats/SKUNK]
+      - [0x7C0, stats/SHROUDLEY]
+      - [0x7E0, stats/RAT]
+      - [0x800, stats/BOMBER]
+      - [0x820, stats/UNKENEMY2]
+      - [0x840, stats/DOLL]
+      - [0x860, stats/LAMP]
+      - [0x880, stats/UNKENEMY3]
+      - [0x8A0, stats/UNKENEMY4]
+      - [0x8C0, stats/BIONICCENTI]
+      - [0x8E0, stats/BIONICSCORP]
+      - [0x900, stats/UNKENEMY5]
+      - [0x920, stats/UNKENEMY6]
+      - [0x940, stats/RED_SNAKE]
+      - [0x960, stats/LONE_WOLF]
+      - [0x980, stats/POLAR_BEAR]
+      - [0x9A0, stats/UNKENEMY7]
+      - [0x9C0, stats/UNKENEMY8]
+      - [0x9E0, stats/UNKENEMY9]
+      - [0xA00, stats/UNKENEMYA]
+      - [0xA20, stats/RATTLESNAKE]
+      - [0xA40, stats/TARANTULA]
+      - [0xA60, stats/CROCODILE]
+      - [0xA80, stats/UNKENEMYB]
+      - [0xAA0, stats/BUFFALO]
+      - [0xAC0, stats/UNKENEMYC]
+      - [0xAE0, stats/BIONIC_BAT]
+      - [0xB00, stats/STRAY_DOG]
+      - [0xB20, stats/PSYCHO_CAR]
+      - [0xB40, stats/PSYCHOTRUCK]
+      - [0xB60, stats/MANIACTRUCK]
+      - [0xB80, stats/ALARM_GHOST]
+      - [0xBA0, stats/UNKENEMYD]
+      - [0xBC0, stats/FOUREYES]
+      - [0xBE0, stats/DADSEYES]
+      - [0xC00, stats/MOMSEYES]
+      - [0xC20, stats/UNKENEMYE]
+      - [0xC40, stats/UNKENEMYF]
+      - [0xC60, stats/SKY_YDDET]
+      - [0xC80, stats/UNKENEMY10]
+      - [0xCA0, stats/GIGA_BORG]
+      - [0xCC0, stats/OMEGA_BORG]
+      - [0xCE0, stats/SCRAPPER]
+      - [0xD00, stats/ULTRABARBOT]
+      - [0xD20, stats/OMEGASAUCER]
+      - [0xD40, stats/KELLY]
+      - [0xD60, stats/STAR_MINER]
+      - [0xD80, stats/SUPERENERGY]
+      - [0xDA0, stats/JUANA]
+      - [0xDC0, stats/BLUESTARMAN]
+      - [0xDE0, stats/ROCKOYLE]
+      - [0xE00, stats/TITANIAN]
+      - [0xE20, stats/OH_MOOK]
+      - [0xE40, stats/UNKENEMY11]
+      - [0xE60, stats/ZOMBIE]
+      - [0xE80, stats/NASTYZOMBIE]
+      - [0xEA0, stats/SILVER_WOLF]
+      - [0xEC0, stats/R7037]
+      - [0xEE0, stats/GRIZZLYBEAR]
+      - [0xF00, stats/R7038XX]
+      - [0xF20, stats/LASTSTARMAN]
+
+      - [0xf40, battle_positionings]
+
+      - [0xf98, battles/BATTLE_0]
+      - [0xfa2, battles/BATTLE_1]
+      - [0xfac, battles/BATTLE_2]
+      - [0xfb6, battles/BATTLE_3]
+      - [0xfc0, battles/BATTLE_4]
+      - [0xfca, battles/BATTLE_5]
+      - [0xfd4, battles/BATTLE_6]
+      - [0xfde, battles/BATTLE_7]
+      - [0xfe8, battles/BATTLE_8]
+      - [0xff2, battles/BATTLE_9]
+      - [0xffc, battles/BATTLE_10]
+      - [0x1006, battles/BATTLE_11]
+      - [0x1010, battles/BATTLE_12]
+      - [0x101a, battles/BATTLE_13]
+      - [0x1024, battles/BATTLE_14]
+      - [0x102e, battles/BATTLE_15]
+      - [0x1038, battles/BATTLE_16]
+      - [0x1042, battles/BATTLE_17]
+      - [0x104c, battles/BATTLE_18]
+      - [0x1056, battles/BATTLE_19]
+      - [0x1060, battles/BATTLE_20]
+      - [0x106a, battles/BATTLE_21]
+      - [0x1074, battles/BATTLE_22]
+      - [0x107e, battles/BATTLE_23]
+      - [0x1088, battles/BATTLE_24]
+      - [0x1092, battles/BATTLE_25]
+      - [0x109c, battles/BATTLE_26]
+      - [0x10a6, battles/BATTLE_27]
+      - [0x10b0, battles/BATTLE_28]
+      - [0x10ba, battles/BATTLE_29]
+      - [0x10c4, battles/BATTLE_30]
+      - [0x10ce, battles/BATTLE_31]
+      - [0x10d8, battles/BATTLE_32]
+      - [0x10e2, battles/BATTLE_33]
+      - [0x10ec, battles/BATTLE_34]
+      - [0x10f6, battles/BATTLE_35]
+      - [0x1100, battles/BATTLE_36]
+      - [0x110a, battles/BATTLE_37]
+      - [0x1114, battles/BATTLE_38]
+      - [0x111e, battles/BATTLE_39]
+      - [0x1128, battles/BATTLE_40]
+      - [0x1132, battles/BATTLE_41]
+      - [0x113c, battles/BATTLE_42]
+      - [0x1146, battles/BATTLE_43]
+      - [0x1150, battles/BATTLE_44]
+      - [0x115a, battles/BATTLE_45]
+      - [0x1164, battles/BATTLE_46]
+      - [0x116e, battles/BATTLE_47]
+      - [0x1178, battles/BATTLE_48]
+      - [0x1182, battles/BATTLE_49]
+      - [0x118c, battles/BATTLE_50]
+      - [0x1196, battles/BATTLE_51]
+      - [0x11a0, battles/BATTLE_52]
+      - [0x11aa, battles/BATTLE_53]
+      - [0x11b4, battles/BATTLE_54]
+      - [0x11be, battles/BATTLE_55]
+      - [0x11c8, battles/BATTLE_56]
+      - [0x11d2, battles/BATTLE_57]
+      - [0x11dc, battles/BATTLE_58]
+      - [0x11e6, battles/BATTLE_59]
+      - [0x11f0, battles/BATTLE_60]
+      - [0x11fa, battles/BATTLE_61]
+      - [0x1204, battles/BATTLE_62]
+      - [0x120e, battles/BATTLE_63]
+      - [0x1218, battles/BATTLE_64]
+      - [0x1222, battles/BATTLE_65]
+      - [0x122c, battles/BATTLE_66]
+      - [0x1236, battles/BATTLE_67]
+      - [0x1240, battles/BATTLE_68]
+      - [0x124a, battles/BATTLE_69]
+      - [0x1254, battles/BATTLE_70]
+      - [0x125e, battles/BATTLE_71]
+      - [0x1268, battles/BATTLE_72]
+      - [0x1272, battles/BATTLE_73]
+      - [0x127c, battles/BATTLE_74]
+      - [0x1286, battles/BATTLE_75]
+      - [0x1290, battles/BATTLE_76]
+      - [0x129a, battles/BATTLE_77]
+      - [0x12a4, battles/BATTLE_78]
+      - [0x12ae, battles/BATTLE_79]
+      - [0x12b8, battles/BATTLE_80]
+      - [0x12c2, battles/BATTLE_81]
+      - [0x12cc, battles/BATTLE_82]
+      - [0x12d6, battles/BATTLE_83]
+      - [0x12e0, battles/BATTLE_84]
+      - [0x12ea, battles/BATTLE_85]
+      - [0x12f4, battles/BATTLE_86]
+      - [0x12fe, battles/BATTLE_87]
+      - [0x1308, battles/BATTLE_88]
+      - [0x1312, battles/BATTLE_89]
+      - [0x131c, battles/BATTLE_90]
+      - [0x1326, battles/BATTLE_91]
+      - [0x1330, battles/BATTLE_92]
+      - [0x133a, battles/BATTLE_93]
+      - [0x1344, battles/BATTLE_94]
+      - [0x134e, battles/BATTLE_95]
+      - [0x1358, battles/BATTLE_96]
+      - [0x1362, battles/BATTLE_97]
+      - [0x136c, battles/BATTLE_98]
+      - [0x1376, battles/BATTLE_99]
+      - [0x1380, battles/BATTLE_100]
+      - [0x138a, battles/BATTLE_101]
+      - [0x1394, battles/BATTLE_102]
+      - [0x139e, battles/BATTLE_103]
+      - [0x13a8, battles/BATTLE_104]
+      - [0x13b2, battles/BATTLE_105]
+      - [0x13bc, battles/BATTLE_106]
+      - [0x13c6, battles/BATTLE_107]
+      - [0x13d0, battles/BATTLE_108]
+      - [0x13da, battles/BATTLE_109]
+      - [0x13e4, battles/BATTLE_110]
+      - [0x13ee, battles/BATTLE_111]
+      - [0x13f8, battles/BATTLE_112]
+      - [0x1402, battles/BATTLE_113]
+      - [0x140c, battles/BATTLE_114]
+      - [0x1416, battles/BATTLE_115]
+      - [0x1420, battles/BATTLE_116]
+      - [0x142a, battles/BATTLE_117]
+      - [0x1434, battles/BATTLE_118]
+      - [0x143e, battles/BATTLE_119]
+      - [0x1448, battles/BATTLE_120]
+      - [0x1452, battles/BATTLE_121]
+      - [0x145c, battles/BATTLE_122]
+      - [0x1466, battles/BATTLE_123]
+      - [0x1470, battles/BATTLE_124]
+      - [0x147a, battles/BATTLE_125]
+      - [0x1484, battles/BATTLE_126]
+      - [0x148e, battles/BATTLE_127]
+      - [0x1498, battles/BATTLE_128]
+      - [0x14a2, battles/BATTLE_129]
+      - [0x14ac, battles/BATTLE_130]
+      - [0x14b6, battles/BATTLE_131]
+      - [0x14c0, battles/BATTLE_132]
+      - [0x14ca, battles/BATTLE_133]
+      - [0x14d4, battles/BATTLE_134]
+      - [0x14de, battles/BATTLE_135]
+      - [0x14e8, battles/BATTLE_136]
+      - [0x14f2, battles/BATTLE_137]
+      - [0x14fc, battles/BATTLE_138]
+      - [0x1506, battles/BATTLE_139]
+      - [0x1510, battles/BATTLE_140]
+      - [0x151a, battles/BATTLE_141]
+      - [0x1524, battles/BATTLE_142]
+      - [0x152e, battles/BATTLE_143]
+      - [0x1538, battles/BATTLE_144]
+      - [0x1542, battles/BATTLE_145]
+      - [0x154c, battles/BATTLE_146]
+      - [0x1556, battles/BATTLE_147]
+      - [0x1560, battles/BATTLE_148]
+      - [0x156a, battles/BATTLE_149]
+      - [0x1574, battles/BATTLE_150]
+      - [0x157e, battles/BATTLE_151]
+      - [0x1588, battles/BATTLE_152]
+      - [0x1592, battles/BATTLE_153]
+      - [0x159c, battles/BATTLE_154]
+      - [0x15a6, battles/BATTLE_155]
+      - [0x15b0, battles/BATTLE_156]
+      - [0x15ba, battles/BATTLE_157]
+      - [0x15c4, battles/BATTLE_158]
+      - [0x15ce, battles/BATTLE_159]
+      - [0x15d8, battles/BATTLE_160]
+      - [0x15e2, battles/BATTLE_161]
+      - [0x15ec, battles/BATTLE_162]
+      - [0x15f6, battles/BATTLE_163]
+      - [0x1600, battles/BATTLE_164]
+
+      - [0x160A, enemy_tiles]
+      - [0x17FB, battle_actions]
+      - [0x1ec7]
+    - bank: 0x17
+      end: 0x1ff1
+      #splits:
+      #- [0]
+    - bank: 0x18
+      end: 0x1fa6
+      splits:
+      - [0, dialogue1]
+    - bank: 0x19
+      end: 0x1fb2
+      splits:
+      - [0, dialogue2]
+    - bank: 0x1A
+      end: 0x1fe3
+      splits:
+      - [0, dialogue3]
+    - bank: 0x1B
+      end: 0x1ef6
+      splits:
+      - [0, dialogue4]
+    - bank: 0x1C
+      splits:
+      - [0, music]
+    - bank: 0x1D
+      splits:
+      - [0, music]
+      - [0x1db2] #padding
+      - [0x1E00, starting_sram]
+      - [0x1E40, starting_characters]
+    - bank: 0x1E
+      splits:
+      - [0, sample/kick]
+      - [0x71]
+      - [0x80, sample/snare]
+      - [0x171]
+    - bank: 0x1F
+      splits:
+      - [0]
+      - [0x1f0a] #padding
+      - [0x1f40, vectors]
+  chr:
+    - bank: 0
+      splits:
+      - [0, chr/tileset1]
+      - [0x400, chr/tileset2]
+      - [0x800, chr/tileset3]
+      - [0xC00, chr/tileset4]
+      - [0x1000, chr/tileset5]
+      - [0x1400, chr/tileset6]
+      - [0x1800, chr/tileset7]
+      - [0x1C00, chr/tileset8]
+    - bank: 1
+      splits:
+      - [0, chr/tileset9]
+      - [0x400, chr/tileset10]
+      - [0x800, chr/tileset11]
+      - [0xC00, chr/tileset12]
+      - [0x1000, chr/tileset13]
+      - [0x1400, chr/tileset14]
+      - [0x1800, chr/tileset15]
+      - [0x1C00, chr/tileset16]
+    - bank: 2
+      splits:
+      - [0, chr/tileset17]
+      - [0x400, chr/tileset18]
+      - [0x800, chr/tileset19]
+      - [0xC00, chr/tileset20]
+      - [0x1000, chr/tileset21]
+      - [0x1400, chr/tileset22]
+      - [0x1800, chr/tileset23]
+      - [0x1C00, chr/tileset24]
+    - bank: 3
+      splits:
+      - [0, chr/tileset25]
+      - [0x400, chr/tileset26]
+      - [0x800, chr/tileset27]
+      - [0xC00, chr/tileset28]
+      - [0x1000, chr/tileset29]
+      - [0x1400, chr/tileset30]
+      - [0x1800, chr/tileset31]
+      - [0x1C00, chr/tileset32]
+    - bank: 4
+      splits:
+      - [0, chr/battle_0]
+      - [0x400, chr/battle_1]
+      - [0x800, chr/battle_2]
+      - [0xC00, chr/battle_3]
+      - [0x1000, chr/battle_4]
+      - [0x1400, chr/battle_5]
+      - [0x1800, chr/battle_6]
+      - [0x1C00, chr/battle_7]
+    - bank: 5
+      splits:
+      - [0, chr/battle_8]
+      - [0x400, chr/battle_9]
+      - [0x800, chr/battle_10]
+      - [0xC00, chr/battle_11]
+      - [0x1000, chr/battle_12]
+      - [0x1400, chr/battle_13]
+      - [0x1800, chr/battle_14]
+      - [0x1C00, chr/battle_15]
+    - bank: 6
+      splits:
+      - [0, chr/battle_16]
+      - [0x400, chr/battle_17]
+      - [0x800, chr/battle_18]
+      - [0xC00, chr/battle_19]
+      - [0x1000, chr/battle_20]
+      - [0x1400, chr/battle_21]
+      - [0x1800, chr/battle_22]
+      - [0x1C00, chr/battle_23]
+    - bank: 7
+      splits:
+      - [0, chr/battle_24]
+      - [0x400, chr/battle_25]
+      - [0x800, chr/battle_26]
+      - [0xC00, chr/battle_27]
+      - [0x1000, chr/battle_28]
+      - [0x1400, chr/battle_29]
+      - [0x1800, chr/battle_30]
+      - [0x1C00, chr/battle_31]
+    - bank: 8
+      end: 0x1000
+      splits:
+      - [0, chr/title]
+      - [0x800, chr/earth]
+    - bank: 9
+      splits:
+      - [0, chr/jp_creditsgfx]
+      - [0x1000, chr/jp_creditsdata]
+    - bank: 0xA
+      splits:
+      - [0, chr/giegueship_gfx]
+      - [0x1000, chr/giegueship_tiles]
+    - bank: 0xB
+      end: 0x1f32
+      splits:
+      - [0, chr/map_gfx]
+      - [0xc00, chr/map_tiles]
+      - [0xfc0, chr/map_attr]
+      - [0x1000, chr/drain_gfx]
+      - [0x1400, chr/drain_tiles]
+      - [0x1800, chr/naming_screen_2]
+    - bank: 0xC
+      splits:
+      - [0, chr/characters1]
+      - [0x800, chr/characters2]
+      - [0x1000, chr/characters3]
+      - [0x1800, chr/characters4]
+    - bank: 0xD
+      splits:
+      - [0, chr/characters5]
+      - [0x800, chr/characters6]
+      - [0x1000, chr/characters7]
+      - [0x1800, chr/characters8]
+    - bank: 0xE
+      splits:
+      - [0, chr/characters9]
+      - [0x800, chr/characters10]
+      - [0x1000, chr/characters11]
+      - [0x1800, chr/characters12]
+    - bank: 0xF
+      splits:
+      - [0, chr/battle_extra]
+      - [0x800, chr/naming_screen_1]
+      - [0x1000, chr/ui]
